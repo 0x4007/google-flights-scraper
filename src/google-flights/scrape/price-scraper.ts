@@ -986,7 +986,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       return Array.from(flightIdMap.values());
     });
 
-    // Log results
+    // Log results and process data for better readability
     if (flights.length > 0) {
       const topFlights = flights.filter((f) => f.isTopFlight);
       const otherFlights = flights.filter((f) => !f.isTopFlight);
@@ -995,8 +995,45 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         `Found ${flights.length} flights (${topFlights.length} top flights, ${otherFlights.length} other flights)`,
       );
 
-      // Return all flight data
-      return flights;
+      // Format the flight data for better readability
+      const processedFlights = flights.map(flight => {
+        // Fix destination if it's incorrectly set to origin
+        if (flight.destination === flight.origin) {
+          // Try to get from destinationDetails or other sources
+          if (flight.destinationDetails?.code) {
+            flight.destination = flight.destinationDetails.code;
+          }
+        }
+
+        // Create nicely formatted flight strings
+        const formatFlightRoute = () => {
+          const origin = flight.origin || "Unknown";
+          const destination = flight.destination || "Unknown";
+          const airlines = flight.airlines.join("/") || "Unknown";
+
+          return `${origin} → ${destination} (${airlines})`;
+        };
+
+        const formatFlightTimings = () => {
+          const deptTime = flight.departureTime || "Unknown";
+          const arrTime = flight.arrivalTime || "Unknown";
+          const duration = flight.duration || "Unknown";
+          const stops = flight.stops === 0 ? "Nonstop" : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`;
+
+          return `${deptTime} → ${arrTime} (${duration}, ${stops})`;
+        };
+
+        // Add these formatted strings for easier display
+        return {
+          ...flight,
+          formattedRoute: formatFlightRoute(),
+          formattedTimings: formatFlightTimings(),
+          formattedPrice: `$${flight.price}`,
+        };
+      });
+
+      // Return all enhanced flight data
+      return processedFlights;
     }
 
     console.warn("No flights found on the page");
