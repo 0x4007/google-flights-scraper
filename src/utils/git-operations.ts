@@ -25,7 +25,7 @@ export async function getCurrentGitCommit(): Promise<string> {
  */
 export async function commitChanges(
   message: string,
-  iteration: number
+  iteration: number,
 ): Promise<boolean> {
   try {
     // Add all files

@@ -25,23 +25,29 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       await page.waitForFunction(
         () => {
           // Look for any element with price information ($ sign or "dollars" text)
-          const priceElements = Array.from(document.querySelectorAll('*'))
-            .filter(el => {
-              const text = el.textContent || '';
-              const ariaLabel = el.getAttribute('aria-label') || '';
-              return text.includes('$') ||
-                     ariaLabel.includes('dollars') ||
-                     text.includes('USD');
-            });
+          const priceElements = Array.from(
+            document.querySelectorAll("*"),
+          ).filter((el) => {
+            const text = el.textContent || "";
+            const ariaLabel = el.getAttribute("aria-label") || "";
+            return (
+              text.includes("$") ||
+              ariaLabel.includes("dollars") ||
+              text.includes("USD")
+            );
+          });
 
           return priceElements.length > 0;
         },
-        { timeout: 15000 }
+        { timeout: 15000 },
       );
 
       console.debug("Price elements found, proceeding with scraping");
     } catch (err) {
-      console.warn("Timeout waiting for price elements, will try alternative approaches:", err);
+      console.warn(
+        "Timeout waiting for price elements, will try alternative approaches:",
+        err,
+      );
     }
 
     // Extract flight data using DOM selectors
@@ -238,12 +244,12 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         arrivalTime: null | string;
       } {
         // Find time span elements that match expected format
-        const times = Array.from(flightElement.querySelectorAll('div'))
-          .filter(el => {
+        const times = Array.from(flightElement.querySelectorAll("div"))
+          .filter((el) => {
             const text = getText(el);
             return text && /^\d{1,2}:\d{2}\s*(?:AM|PM)/.test(text);
           })
-          .map(el => getText(el));
+          .map((el) => getText(el));
 
         // Generally, departure time comes first, arrival time second
         const departureTime = times[0] || null;
@@ -254,11 +260,12 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
       function extractDuration(flightElement: Element): null | string {
         // Look for text matching pattern "X hr Y min"
-        const durationDiv = Array.from(flightElement.querySelectorAll('div'))
-          .find(div => {
-            const text = getText(div);
-            return text && /^\d+\s*hr\s*(?:\d+\s*min)?$/.test(text);
-          });
+        const durationDiv = Array.from(
+          flightElement.querySelectorAll("div"),
+        ).find((div) => {
+          const text = getText(div);
+          return text && /^\d+\s*hr\s*(?:\d+\s*min)?$/.test(text);
+        });
 
         return durationDiv ? getText(durationDiv) : null;
       }
@@ -287,11 +294,12 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         }
 
         // Fallback: search for text patterns like "Nonstop" or "1 stop" in div elements
-        const divElements = Array.from(flightElement.querySelectorAll('div'));
+        const divElements = Array.from(flightElement.querySelectorAll("div"));
 
         // First check for "Nonstop"
-        const nonstopDiv = divElements.find(div =>
-          getText(div)?.trim() === "Nonstop");
+        const nonstopDiv = divElements.find(
+          (div) => getText(div)?.trim() === "Nonstop",
+        );
         if (nonstopDiv) return 0;
 
         // Then check for "X stop(s)" pattern
@@ -324,8 +332,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         destination: string | null;
       } {
         // Look for airport codes in div elements
-        const airportDivs = Array.from(flightElement.querySelectorAll('div > div'))
-          .filter(div => /^[A-Z]{3}$/.test(div.textContent?.trim() || ''));
+        const airportDivs = Array.from(
+          flightElement.querySelectorAll("div > div"),
+        ).filter((div) => /^[A-Z]{3}$/.test(div.textContent?.trim() || ""));
 
         let origin = null;
         let destination = null;
@@ -398,30 +407,36 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       function findFlightElements(container: Element | Document): Element[] {
         // First use the most specific selectors
         let elements = Array.from(
-          container.querySelectorAll('li:has(span[data-gs][aria-label*="US dollars"], span[aria-label*="US dollars"])')
+          container.querySelectorAll(
+            'li:has(span[data-gs][aria-label*="US dollars"], span[aria-label*="US dollars"])',
+          ),
         );
 
         // If nothing found, try broader approach
         if (elements.length === 0) {
           // Find li elements with price tags inside
-          elements = Array.from(container.querySelectorAll('li'))
-            .filter(li => {
+          elements = Array.from(container.querySelectorAll("li")).filter(
+            (li) => {
               // Look for price patterns
-              const hasPrice = li.textContent?.includes('$') ||
+              const hasPrice =
+                li.textContent?.includes("$") ||
                 !!li.querySelector('span[aria-label*="dollars"]');
 
               // Verify it's a flight by checking for flight-related content
-              const hasDuration = Array.from(li.querySelectorAll('div'))
-                .some(div => /^\d+\s*hr/.test(div.textContent?.trim() || ''));
+              const hasDuration = Array.from(li.querySelectorAll("div")).some(
+                (div) => /^\d+\s*hr/.test(div.textContent?.trim() || ""),
+              );
 
               return hasPrice && hasDuration;
-            });
+            },
+          );
         }
 
         // Filter out any "View more flights" buttons or other non-flight items
-        return elements.filter(el =>
-          !el.querySelector('button[aria-label="View more flights"]') &&
-          !el.textContent?.includes("View more flights")
+        return elements.filter(
+          (el) =>
+            !el.querySelector('button[aria-label="View more flights"]') &&
+            !el.textContent?.includes("View more flights"),
         );
       }
 
@@ -431,16 +446,17 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
       // Check for headers like "Top departing flights" or "Other departing flights"
       for (const header of headers) {
-        const headerText = header.textContent || '';
+        const headerText = header.textContent || "";
         const isTopSection = headerText.includes("Top departing flights");
 
         // Look for flight elements in the header's region
-        const region = header.closest('[role="region"]') || header.parentElement;
+        const region =
+          header.closest('[role="region"]') || header.parentElement;
 
         if (region) {
           // For top flights, look for tabpanel
           const container = isTopSection
-            ? (region.querySelector('[role="tabpanel"]') || region)
+            ? region.querySelector('[role="tabpanel"]') || region
             : region;
 
           const flightElements = findFlightElements(container);
@@ -452,7 +468,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             });
             foundAnyFlights = true;
             console.debug(
-              `Found ${flightElements.length} flights near header "${headerText}" (isTop: ${isTopSection})`
+              `Found ${flightElements.length} flights near header "${headerText}" (isTop: ${isTopSection})`,
             );
           }
         }
@@ -470,7 +486,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             isTopSection: false, // Can't determine if they're top flights
             elements: allFlightElements,
           });
-          console.debug(`Found ${allFlightElements.length} flights using direct page search`);
+          console.debug(
+            `Found ${allFlightElements.length} flights using direct page search`,
+          );
         }
       }
 

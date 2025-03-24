@@ -46,7 +46,9 @@ export async function navigateToFlights(
   // Record result in the genetic algorithm manager
   const result = await gaManager.recordResult(parameters, flightData);
 
-  console.log(`Iteration ${result.metadata.iteration} completed with score: ${result.metadata.score}`);
+  console.log(
+    `Iteration ${result.metadata.iteration} completed with score: ${result.metadata.score}`,
+  );
   console.log(`Results saved with git commit: ${result.metadata.gitCommit}`);
 
   // Add a delay to ensure the screenshot captures the entered location

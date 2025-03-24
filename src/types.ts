@@ -11,7 +11,7 @@ export interface GeneticAlgorithmMetadata {
   gitCommit: string;
   timestamp: number;
   success: boolean;
-  score: number;
+  // score: number;
 }
 
 export interface FlightSearchResult {

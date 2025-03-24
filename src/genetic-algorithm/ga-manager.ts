@@ -1,6 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { FlightSearchParameters, FlightSearchResult, GeneticAlgorithmMetadata } from "../types";
+import {
+  FlightSearchParameters,
+  FlightSearchResult,
+  GeneticAlgorithmMetadata,
+} from "../types";
 import { getCurrentGitCommit, commitChanges } from "../utils/git-operations";
 
 /**
@@ -29,8 +33,11 @@ export class GeneticAlgorithmManager {
 
       // Filter for flight result json files and extract iteration numbers
       const iterations = files
-        .filter(file => file.startsWith("flight-iteration-") && file.endsWith(".json"))
-        .map(file => {
+        .filter(
+          (file) =>
+            file.startsWith("flight-iteration-") && file.endsWith(".json"),
+        )
+        .map((file) => {
           const match = file.match(/flight-iteration-(\d+)/);
           return match ? parseInt(match[1], 10) : 0;
         });
@@ -56,7 +63,7 @@ export class GeneticAlgorithmManager {
 
     // For now, just use the lowest price as the score
     // This can be expanded with more complex fitness functions
-    const lowestPrice = Math.min(...flightData.map(flight => flight.price));
+    const lowestPrice = Math.min(...flightData.map((flight) => flight.price));
     return lowestPrice;
   }
 
@@ -68,13 +75,13 @@ export class GeneticAlgorithmManager {
    */
   public async recordResult(
     parameters: FlightSearchParameters,
-    flightData: FlightSearchResult["results"]
+    flightData: FlightSearchResult["results"],
   ): Promise<FlightSearchResult> {
     // Get current git commit
     const gitCommit = await getCurrentGitCommit();
 
     // Calculate score
-    const score = this.calculateScore(flightData);
+    // const score = this.calculateScore(flightData);
     const success = flightData.length > 0;
 
     // Create metadata
@@ -83,14 +90,16 @@ export class GeneticAlgorithmManager {
       gitCommit,
       timestamp: Date.now(),
       success,
-      score
+      // score
     };
+
+    console.log({ metadata });
 
     // Create full result
     const result: FlightSearchResult = {
       parameters,
       metadata,
-      results: flightData
+      results: flightData,
     };
 
     // Save to file
@@ -98,17 +107,18 @@ export class GeneticAlgorithmManager {
     fs.writeFileSync(
       path.join(this.logsPath, filename),
       JSON.stringify(result, null, 2),
-      "utf-8"
+      "utf-8",
     );
 
     console.log(`Saved flight data for iteration ${this.currentIteration}`);
-    console.log(`Score: ${score}`);
+    // console.log(`Score: ${score}`);
 
     // If this is a successful run with a better score, commit the changes
-    if (success && score < this.bestScore) {
-      this.bestScore = score;
-      await commitChanges(`Improved flight search with score ${score}`, this.currentIteration);
-    }
+    // if (success && score < this.bestScore) {
+    // this.bestScore = score;
+    // await commitChanges(`Improved flight search with score ${score}`, this.currentIteration);
+    await commitChanges(`Successful scrape`, this.currentIteration);
+    // }
 
     // Increment iteration for next run
     this.currentIteration++;
