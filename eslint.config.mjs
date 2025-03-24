@@ -4,6 +4,9 @@ import tsParser from "@typescript-eslint/parser";
 import globals from "globals";
 
 export default [
+  {
+    ignores: ["src/google-flights/scrape/**/*"]
+  },
   js.configs.recommended,
   {
     files: ["**/*.ts"],
