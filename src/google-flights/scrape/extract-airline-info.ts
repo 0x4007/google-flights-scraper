@@ -1,5 +1,5 @@
-import { extractAirlineNames } from "./extractAirlineNames";
-import { extractBookingCaution } from "./extractBookingCaution";
+import { extractAirlineNames } from "./extract-airline-names";
+import { extractBookingCaution } from "./extract-booking-caution";
 
 
 export function extractAirlineInfo(flightElement: Element): {

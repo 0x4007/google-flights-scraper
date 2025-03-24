@@ -1,4 +1,4 @@
-import { getText } from "./getText";
+import { getText } from "./get-text";
 
 // Helper functions to extract specific flight details
 

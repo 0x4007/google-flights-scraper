@@ -1,7 +1,7 @@
 import { Page } from "puppeteer";
 import { FlightData } from "../../types";
-import { formatFlightRoute } from "./formatFlightRoute";
-import { formatFlightTimings } from "./formatFlightTimings";
+import { formatFlightRoute } from "./format-flight-route";
+import { formatFlightTimings } from "./format-flight-timings";
 
 // Main scraping function
 

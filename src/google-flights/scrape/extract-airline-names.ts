@@ -1,6 +1,6 @@
-import { addAirlineName } from "./addAirlineName";
-import { getText } from "./getText";
-import { isNonAirlineText } from "./isNonAirlineText";
+import { addAirlineName } from "./add-airline-name";
+import { getText } from "./get-text";
+import { isNonAirlineText } from "./is-non-airline-text";
 
 
 export function extractAirlineNames(flightElement: Element): string[] {

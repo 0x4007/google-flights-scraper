@@ -1,5 +1,5 @@
 import { FlightData } from "../../types";
-import { extractFlightDetails } from "./extractFlightDetails";
+import { extractFlightDetails } from "./extract-flight-details";
 
 // Process flight elements in a section
 

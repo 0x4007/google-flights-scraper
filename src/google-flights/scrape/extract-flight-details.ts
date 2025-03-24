@@ -1,10 +1,10 @@
 import { FlightData } from "../../types";
-import { extractAirlineInfo } from "./extractAirlineInfo";
-import { extractAirports } from "./extractAirports";
-import { extractDuration } from "./extractDuration";
-import { extractPrice } from "./extractPrice";
-import { extractStops } from "./extractStops";
-import { extractTimes } from "./extractTimes";
+import { extractAirlineInfo } from "./extract-airline-info";
+import { extractAirports } from "./extract-airports";
+import { extractDuration } from "./extract-duration";
+import { extractPrice } from "./extract-price";
+import { extractStops } from "./extract-stops";
+import { extractTimes } from "./extract-times";
 
 // Main function to extract flight details
 

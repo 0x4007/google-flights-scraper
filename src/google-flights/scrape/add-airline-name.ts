@@ -1,4 +1,4 @@
-import { splitConcatenatedNames } from "./splitConcatenatedNames";
+import { splitConcatenatedNames } from "./split-concatenated-names";
 
 
 export function addAirlineName(airlineNames: string[], text: string): void {
