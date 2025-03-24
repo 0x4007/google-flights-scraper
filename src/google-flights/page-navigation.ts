@@ -52,7 +52,7 @@ export async function navigateToFlights(
   }
 
   console.log(
-    `Iteration ${result.metadata.iteration} completed: ${result.metadata}`,
+    `Iteration ${result.metadata.iteration} completed: ${JSON.stringify(result.metadata)}`,
   );
   console.log(`Results saved with git commit: ${result.metadata.gitCommit}`);
 
