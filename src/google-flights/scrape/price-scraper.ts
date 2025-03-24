@@ -402,13 +402,15 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         const unit = "kg CO2e";
 
         // Look for comparison text (e.g., "-6% emissions")
-        const comparisonDiv = flightElement.querySelector('div:has(div[aria-hidden="true"]:contains("emissions"))');
+        // Find all divs with aria-hidden="true" that might contain emissions info
         let comparison = undefined;
         let comparisonValue = undefined;
 
-        if (comparisonDiv) {
-          const comparisonText = Array.from(comparisonDiv.querySelectorAll('div[aria-hidden="true"]'))
-            .find(div => getText(div)?.includes("emissions"))?.textContent?.trim();
+        const emissionsDivs = Array.from(flightElement.querySelectorAll('div[aria-hidden="true"]'))
+          .filter(div => div.textContent?.includes("emissions"));
+
+        if (emissionsDivs.length > 0) {
+          const comparisonText = emissionsDivs[0]?.textContent?.trim();
 
           if (comparisonText) {
             comparison = comparisonText;
@@ -742,12 +744,11 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
       // Helper function to identify flight list items
       function findFlightElements(container: Element | Document): Element[] {
-        // First use the most specific selectors
-        let elements = Array.from(
-          container.querySelectorAll(
-            'li:has(span[data-gs][aria-label*="US dollars"], span[aria-label*="US dollars"])',
-          ),
-        );
+        // First use standard selectors and then filter
+        let elements = Array.from(container.querySelectorAll('li')).filter(li => {
+          return li.querySelector('span[data-gs][aria-label*="US dollars"]') !== null ||
+                 li.querySelector('span[aria-label*="US dollars"]') !== null;
+        });
 
         // If nothing found, try broader approach
         if (elements.length === 0) {
