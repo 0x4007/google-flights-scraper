@@ -1,6 +1,6 @@
 import { Page } from "puppeteer";
-import { FlightSearchParameters } from "../types";
 import { gaManager } from "../genetic-algorithm/ga-manager";
+import { FlightSearchParameters } from "../types";
 import { applyAllianceFilters } from "./filter/alliance-filter-handler";
 import { scrapeFlightPrices } from "./scrape/price-scraper";
 import { clickSearchButton } from "./search/click-search-button/click-search-button";
@@ -45,6 +45,11 @@ export async function navigateToFlights(
 
   // Record result in the genetic algorithm manager
   const result = await gaManager.recordResult(parameters, flightData);
+
+  if (!result.results.length) {
+    console.error("No results found for this iteration");
+    return;
+  }
 
   console.log(
     `Iteration ${result.metadata.iteration} completed: ${result.metadata}`,

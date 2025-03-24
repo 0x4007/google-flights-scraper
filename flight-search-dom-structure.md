@@ -56,22 +56,26 @@ li
 The interface makes extensive use of ARIA labels to provide accessibility information. Key patterns include:
 
 1. **Flight summaries**: Comprehensive labels that contain all critical information in one attribute:
+
    ```
    aria-label="From 386 US dollars round trip total. Nonstop flight with Asiana Airlines. Leaves Incheon International Airport at 6:30 PM on Monday, March 31 and arrives at Narita International Airport at 9:00 PM on Monday, March 31. Total duration 2 hr 30 min. Select flight"
    ```
 
 2. **Time information**: Detailed labels for departure and arrival times:
+
    ```
    aria-label="Departure time: 6:30 PM."
    aria-label="Arrival time: 9:00 PM."
    ```
 
 3. **Duration information**:
+
    ```
    aria-label="Total duration 2 hr 30 min."
    ```
 
 4. **Stop details**:
+
    ```
    aria-label="Nonstop flight."
    aria-label="1 stop flight."
@@ -79,11 +83,13 @@ The interface makes extensive use of ARIA labels to provide accessibility inform
    ```
 
 5. **Environmental impact**:
+
    ```
    aria-label="Carbon emissions estimate: 118 kilograms. -6% emissions. Learn more about this emissions estimate"
    ```
 
 6. **Price information**:
+
    ```
    aria-label="386 US dollars"
    ```
@@ -138,6 +144,7 @@ div (aria-modal="true")
 ### Tab Structure
 
 The search results use a tab interface to organize flights by category:
+
 - "Best" tab (default selected): Flights ranked by balanced price and convenience
 - "Cheapest" tab: Flights ranked purely by lowest price
 
@@ -148,6 +155,7 @@ Flight listings can be expanded to show additional details via a toggle button.
 ### Hover Information
 
 Many elements have tooltip-style information revealed on hover or focus, indicated by:
+
 ```
 <span tabindex="0">
     <span><svg>...</svg></span>
@@ -157,6 +165,7 @@ Many elements have tooltip-style information revealed on hover or focus, indicat
 ### Tracking Features
 
 The interface allows users to track prices with toggles:
+
 ```
 <button aria-checked="false" aria-label="Track prices from Seoul to Tokyo...">
 ```

@@ -431,10 +431,15 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       // Helper function to identify flight list items
       function findFlightElements(container: Element | Document): Element[] {
         // First use standard selectors and then filter
-        let elements = Array.from(container.querySelectorAll('li')).filter(li => {
-          return li.querySelector('span[data-gs][aria-label*="US dollars"]') !== null ||
-                 li.querySelector('span[aria-label*="US dollars"]') !== null;
-        });
+        let elements = Array.from(container.querySelectorAll("li")).filter(
+          (li) => {
+            return (
+              li.querySelector('span[data-gs][aria-label*="US dollars"]') !==
+                null ||
+              li.querySelector('span[aria-label*="US dollars"]') !== null
+            );
+          },
+        );
 
         // If nothing found, try broader approach
         if (elements.length === 0) {
@@ -560,7 +565,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       );
 
       // Add formatted data for better display
-      const processedFlights = flights.map(flight => {
+      const processedFlights = flights.map((flight) => {
         // Fix destination if it's incorrectly set to origin
         if (flight.destination === flight.origin) {
           // For Seoul-Tokyo flights, guess the destination
@@ -583,7 +588,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           let arrTime = flight.arrivalTime;
           if (arrTime === deptTime && flight.duration) {
             // Try to estimate arrival time from duration
-            const durMatch = flight.duration.match(/(\d+)\s*hr\s*(?:(\d+)\s*min)?/);
+            const durMatch = flight.duration.match(
+              /(\d+)\s*hr\s*(?:(\d+)\s*min)?/,
+            );
             if (durMatch) {
               const hours = parseInt(durMatch[1], 10);
               // We don't have a way to actually calculate the time, so make it different
@@ -593,7 +600,10 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           arrTime = arrTime || "Unknown";
 
           const duration = flight.duration || "Unknown";
-          const stops = flight.stops === 0 ? "Nonstop" : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`;
+          const stops =
+            flight.stops === 0
+              ? "Nonstop"
+              : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`;
 
           return `${deptTime} → ${arrTime} (${duration}, ${stops})`;
         };
