@@ -422,16 +422,82 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           let departureTime = null;
           let arrivalTime = null;
 
-          // Look for elements with time patterns (12:30 PM)
-          const timeElements = Array.from(flightElement.querySelectorAll("div, span"))
-            .filter(el => /^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(el.textContent?.trim() || ""))
-            .map(el => el.textContent?.trim() || "");
+          // Try to find times in a more precise way using surrounding context
+          // Method 1: Look for time elements with specific context labels
+          const elements = Array.from(flightElement.querySelectorAll("div, span"));
 
-          if (timeElements.length >= 2) {
-            departureTime = timeElements[0];
-            arrivalTime = timeElements[1];
-          } else if (timeElements.length === 1) {
-            departureTime = timeElements[0];
+          // First pass: Look for elements with clear departure or arrival indicators in aria-labels
+          for (const el of elements) {
+            const ariaLabel = el.getAttribute && el.getAttribute("aria-label") || "";
+            const text = el.textContent?.trim() || "";
+
+            // Check for time pattern
+            if (!/^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(text)) continue;
+
+            // Determine if departure or arrival based on aria-label
+            if (ariaLabel.includes("depart") || ariaLabel.includes("leaves")) {
+              departureTime = text;
+            } else if (ariaLabel.includes("arrive") || ariaLabel.includes("arrives")) {
+              arrivalTime = text;
+            }
+          }
+
+          // Second pass: Look for flight time elements in specific flight detail layouts
+          if (!departureTime || !arrivalTime) {
+            // Try to find time elements within a row or cell structure
+            const timeRows = Array.from(flightElement.querySelectorAll('[role="row"]'));
+
+            // Process each row that might contain flight times
+            for (const row of timeRows) {
+              const timeElements = Array.from(row.querySelectorAll("div, span"))
+                .filter(el => /^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(el.textContent?.trim() || ""))
+                .map(el => el.textContent?.trim() || "");
+
+              if (timeElements.length >= 2) {
+                // The first time is typically departure, second is arrival
+                if (!departureTime) departureTime = timeElements[0];
+                if (!arrivalTime) arrivalTime = timeElements[1];
+                break; // Found a row with both times
+              }
+            }
+          }
+
+          // Third pass: Fallback to simpler approaches if still missing times
+          if (!departureTime || !arrivalTime) {
+            // Find all time elements across the flight element
+            const allTimeElements = Array.from(flightElement.querySelectorAll("div, span"))
+              .filter(el => /^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(el.textContent?.trim() || ""))
+              .map(el => el.textContent?.trim() || "");
+
+            // If we have at least two distinct times, use the first as departure and last as arrival
+            const uniqueTimes = [...new Set(allTimeElements)];
+
+            if (uniqueTimes.length >= 2) {
+              if (!departureTime) departureTime = uniqueTimes[0];
+              if (!arrivalTime) arrivalTime = uniqueTimes[uniqueTimes.length - 1];
+            } else if (uniqueTimes.length === 1) {
+              // If only one time found, use it for departure and calculate arrival based on duration
+              if (!departureTime) departureTime = uniqueTimes[0];
+
+              // We'll calculate arrival time later using the duration
+            }
+          }
+
+          // Final validation - don't allow identical departure and arrival times
+          if (departureTime && arrivalTime && departureTime === arrivalTime) {
+            // Try to calculate arrival time based on departure time and duration
+            const duration = extractDuration(flightElement);
+            if (duration) {
+              // Parse the duration to calculate an estimated arrival time
+              const durationMatch = duration.match(/(\d+)\s*hr(?:\s*(\d+)\s*min)?/);
+              if (durationMatch) {
+                const hours = parseInt(durationMatch[1], 10);
+                const minutes = durationMatch[2] ? parseInt(durationMatch[2], 10) : 0;
+
+                // For simplicity, just note that arrival is later by the duration
+                arrivalTime = `${departureTime} + ${hours}h${minutes > 0 ? minutes + 'm' : ''}`;
+              }
+            }
           }
 
           return { departureTime, arrivalTime };
