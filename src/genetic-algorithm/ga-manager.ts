@@ -111,14 +111,19 @@ export class GeneticAlgorithmManager {
     );
 
     console.log(`Saved flight data for iteration ${this.currentIteration}`);
-    // console.log(`Score: ${score}`);
 
-    // If this is a successful run with a better score, commit the changes
-    // if (success && score < this.bestScore) {
-    // this.bestScore = score;
-    // await commitChanges(`Improved flight search with score ${score}`, this.currentIteration);
-    await commitChanges(`Successful scrape`, this.currentIteration);
-    // }
+    // Only perform git commit if we're in development mode (not on GitHub Actions)
+    const isDev = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev";
+    if (success && isDev) {
+      try {
+        await commitChanges(`[Iteration ${this.currentIteration}] Successful scrape`, this.currentIteration);
+        console.log(`Successfully committed: [Iteration ${this.currentIteration}] Successful scrape`);
+      } catch (error) {
+        console.warn(`Warning: Could not commit changes: ${error}`);
+      }
+    } else if (!isDev) {
+      console.log(`Skipping Git commit as NODE_ENV is not 'development' or 'dev'`);
+    }
 
     // Increment iteration for next run
     this.currentIteration++;

@@ -131,7 +131,14 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           text.includes("Mon,") ||
           text.includes("Tue,") ||
           /\d{4}/.test(text) || // Skip years
-          /\d{1,2}:\d{2}/.test(text)
+          /\d{1,2}:\d{2}/.test(text) ||
+          text.includes("CO2") ||
+          text.includes("kg") ||
+          text.includes("emissions") ||
+          text.includes("Avoids") ||
+          text.includes("trees absorb") ||
+          text.includes("+") ||
+          text.includes("%")
         ); // Skip times
       }
 
