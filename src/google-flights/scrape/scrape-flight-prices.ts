@@ -1,6 +1,7 @@
 import { Page } from "puppeteer";
 import { FlightData } from "../../types";
 import { captureDOMStructure } from "../../utils/capture-dom";
+import { findPriceElements } from "./findPriceElements";
 import { formatFlightRoute } from "./format-flight-route";
 import { formatFlightTimings } from "./format-flight-timings";
 
@@ -15,22 +16,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
     console.debug("Waiting for price elements to appear on the page...");
     try {
       await page.waitForFunction(
-        () => {
-          // Look for any element with price information ($ sign or "dollars" text)
-          const priceElements = Array.from(
-            document.querySelectorAll("*")
-          ).filter((el) => {
-            const text = el.textContent || "";
-            const ariaLabel = el.getAttribute("aria-label") || "";
-            return (
-              text.includes("$") ||
-              ariaLabel.includes("dollars") ||
-              text.includes("USD")
-            );
-          });
-
-          return priceElements.length > 0;
-        },
+        findPriceElements(),
         { timeout: 15000 }
       );
 
