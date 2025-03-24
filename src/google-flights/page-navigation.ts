@@ -1,13 +1,14 @@
 import { Page } from "puppeteer";
 import { gaManager } from "../genetic-algorithm/ga-manager";
 import { FlightSearchParameters } from "../types";
+import { captureDOMStructure } from "../utils/capture-dom";
 import { applyAllianceFilters } from "./filter/alliance-filter-handler";
+import { scrapeFlightPrices } from "./scrape/scrape-flight-prices";
 import { clickSearchButton } from "./search/click-search-button/click-search-button";
 import { selectDepartureDate } from "./search/select-date/departure-date";
 import { selectReturnDate } from "./search/select-date/return-date";
 import { whereFrom } from "./search/select-locations/where-from";
 import { whereTo } from "./search/select-locations/where-to";
-import { scrapeFlightPrices } from "./scrape/scrape-flight-prices";
 
 export async function navigateToFlights(
   page: Page,
@@ -39,9 +40,19 @@ export async function navigateToFlights(
 
   await applyAllianceFilters(page);
 
+  // Capture DOM structure for analysis before scraping
+  console.log("Capturing DOM structure before scraping...");
+  const preScrapeStructureFile = await captureDOMStructure(page, "pre-scrape");
+  console.log(`Pre-scrape DOM structure saved to: ${preScrapeStructureFile}`);
+
   // Scrape flight data
   const flightData = await scrapeFlightPrices(page);
   console.dir({ flightData }, { depth: null, colors: true });
+
+  // Capture DOM structure again after scraping
+  console.log("Capturing DOM structure after scraping...");
+  const postScrapeStructureFile = await captureDOMStructure(page, "post-scrape");
+  console.log(`Post-scrape DOM structure saved to: ${postScrapeStructureFile}`);
 
   // Record result in the genetic algorithm manager
   const result = await gaManager.recordResult(parameters, flightData);

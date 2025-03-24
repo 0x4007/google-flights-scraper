@@ -1,5 +1,6 @@
 import { Page } from "puppeteer";
 import { FlightData } from "../../types";
+import { captureDOMStructure } from "../../utils/capture-dom";
 import { formatFlightRoute } from "./format-flight-route";
 import { formatFlightTimings } from "./format-flight-timings";
 
@@ -35,12 +36,19 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       );
 
       console.debug("Price elements found, proceeding with scraping");
+
+    // Capture DOM structure specifically focused on price elements
+    await captureDOMStructure(page, "price-elements-found");
     } catch (err) {
       console.warn(
         "Timeout waiting for price elements, will try alternative approaches:",
         err
       );
     }
+
+    // First capture the detail structure of the flights container before extraction
+    console.debug("Capturing flight container structure before detailed extraction");
+    await captureDOMStructure(page, "flight-container-before-extraction");
 
     // Extract flight data using DOM selectors
     const flights = await page.evaluate(() => {
@@ -246,6 +254,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
               // Look for airport codes
               if (/^[A-Z]{3}$/.test(text)) {
+                console.debug(`Found airport code: ${text}, element:`, el.outerHTML);
                 if (!flightInfo.origin) {
                   flightInfo.origin = text;
                 } else if (!flightInfo.destination) {
@@ -273,6 +282,47 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
       return findFlights();
     });
+
+    // Capture DOM specific to airline information
+    console.debug("Capturing airline element details");
+    await page.evaluate(() => {
+      const airlineElements = Array.from(document.querySelectorAll(
+        'img[alt*="Airlines"], div:not([role]) > span:not([role]):not([aria-label]):not([data-gs])'
+      )).filter(el => {
+        const text = el.textContent?.trim() || el.getAttribute('alt') || '';
+        return text.includes('Airlines') ||
+               text.includes('Air') ||
+               /^[A-Z0-9]{2}$/.test(text) || // Airline codes
+               text.match(/^[A-Z][a-z]+$/); // Potential airline names
+      });
+
+      console.debug("Found potential airline elements:", airlineElements.map(el => ({
+        tagName: el.tagName,
+        text: el.textContent?.trim() || el.getAttribute('alt') || '',
+        html: el.outerHTML,
+        parent: el.parentElement?.outerHTML
+      })));
+    });
+
+    // Capture DOM specific to airport information
+    await page.evaluate(() => {
+      const airportElements = Array.from(document.querySelectorAll(
+        'span, div'
+      )).filter(el => {
+        const text = el.textContent?.trim() || '';
+        return /^[A-Z]{3}$/.test(text); // Airport codes
+      });
+
+      console.debug("Found airport code elements:", airportElements.map(el => ({
+        tagName: el.tagName,
+        text: el.textContent?.trim() || '',
+        html: el.outerHTML,
+        parent: el.parentElement?.outerHTML
+      })));
+    });
+
+    // Capture final DOM structure after all processing
+    await captureDOMStructure(page, "after-flight-extraction");
 
     console.info(`Found ${flights.length} flights in total`);
 

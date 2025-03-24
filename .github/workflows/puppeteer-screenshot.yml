@@ -72,3 +72,11 @@ jobs:
           name: flight-screenshots
           path: screenshot/*.png
           retention-days: 7
+
+      - name: Upload DOM structure as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dom-structure-captures
+          path: dom-captures/*.json
+          retention-days: 7
+          if-no-files-found: ignore
