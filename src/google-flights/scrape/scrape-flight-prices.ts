@@ -60,7 +60,18 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
       // Find flight containers organized by sections
       function findFlightContainers() {
-        const flightData: any[] = [];
+        const flightData: {
+          price: number;
+          airlines: string[];
+          bookingCaution: string | null;
+          departureTime: string | null;
+          arrivalTime: string | null;
+          duration: string | null;
+          stops: number;
+          origin: string | null;
+          destination: string | null;
+          isTopFlight: boolean;
+        }[] = [];
         const flightSections = new Map();
         let foundAnyFlights = false;
 
@@ -170,7 +181,18 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       }
 
       // Function to extract flight details using our modular extraction approach
-      function extractFlightDetails(flightElement: Element): any {
+      function extractFlightDetails(flightElement: Element): {
+        price: number;
+        airlines: string[];
+        bookingCaution: string | null;
+        departureTime: string | null;
+        arrivalTime: string | null;
+        duration: string | null;
+        stops: number;
+        origin: string | null;
+        destination: string | null;
+        isTopFlight: boolean;
+      } | null {
         // Skip "View more flights" button if present
         if (flightElement.querySelector('button[aria-label*="View more flights"]')) {
           return null;
