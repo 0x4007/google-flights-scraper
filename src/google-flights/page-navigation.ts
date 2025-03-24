@@ -1,12 +1,12 @@
 import { Page } from "puppeteer";
 import { FlightSearchParameters } from "../types";
 import { applyAllianceFilters } from "./filter/alliance-filter-handler";
+import { scrapeFlightPrices } from "./scrape/price-scraper";
 import { clickSearchButton } from "./search/click-search-button/click-search-button";
 import { selectDepartureDate } from "./search/select-date/departure-date";
 import { selectReturnDate } from "./search/select-date/return-date";
 import { whereFrom } from "./search/select-locations/where-from";
 import { whereTo } from "./search/select-locations/where-to";
-import { scrapeFlightPrices } from "./scrape/price-scraper";
 
 export async function navigateToFlights(
   page: Page,
@@ -38,7 +38,9 @@ export async function navigateToFlights(
 
   await applyAllianceFilters(page);
 
-  await scrapeFlightPrices(page);
+  const flightData = await scrapeFlightPrices(page);
+
+  console.trace({ flightData });
 
   // Add a delay to ensure the screenshot captures the entered location
   await new Promise((resolve) => setTimeout(resolve, 1000));

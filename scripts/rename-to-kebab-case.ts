@@ -8,15 +8,19 @@ const args = process.argv.slice(2);
 const isDryRun = args.includes("--dry-run");
 const isVerbose = args.includes("--verbose");
 const dirIndex = args.indexOf("--dir");
-const rootDir = dirIndex !== -1 && args.length > dirIndex + 1 ? args[dirIndex + 1] : "src";
+const rootDir =
+  dirIndex !== -1 && args.length > dirIndex + 1 ? args[dirIndex + 1] : "src";
 
 // Logging utility
 const log = {
   info: (message: string) => console.log(`\x1b[34mINFO:\x1b[0m ${message}`),
-  success: (message: string) => console.log(`\x1b[32mSUCCESS:\x1b[0m ${message}`),
-  warning: (message: string) => console.log(`\x1b[33mWARNING:\x1b[0m ${message}`),
+  success: (message: string) =>
+    console.log(`\x1b[32mSUCCESS:\x1b[0m ${message}`),
+  warning: (message: string) =>
+    console.log(`\x1b[33mWARNING:\x1b[0m ${message}`),
   error: (message: string) => console.error(`\x1b[31mERROR:\x1b[0m ${message}`),
-  verbose: (message: string) => isVerbose && console.log(`\x1b[90mDEBUG:\x1b[0m ${message}`),
+  verbose: (message: string) =>
+    isVerbose && console.log(`\x1b[90mDEBUG:\x1b[0m ${message}`),
 };
 
 // Stats
@@ -44,7 +48,10 @@ function isCamelCase(filename: string): boolean {
 
   // Check if the filename has uppercase letters (camelCase or PascalCase)
   // and doesn't contain hyphens (already kebab-case)
-  return (/^[a-z][a-zA-Z0-9]*[A-Z]/.test(name) || /^[A-Z]/.test(name)) && !name.includes("-");
+  return (
+    (/^[a-z][a-zA-Z0-9]*[A-Z]/.test(name) || /^[A-Z]/.test(name)) &&
+    !name.includes("-")
+  );
 }
 
 /**
@@ -87,7 +94,8 @@ function createRenameMapping(files: string[]): RenameMapping[] {
     const basename = path.basename(file);
 
     if (isCamelCase(basename)) {
-      const newBasename = toKebabCase(path.parse(basename).name) + path.extname(basename);
+      const newBasename =
+        toKebabCase(path.parse(basename).name) + path.extname(basename);
       const newPath = path.join(dirname, newBasename);
 
       mapping.push({
@@ -107,7 +115,10 @@ function createRenameMapping(files: string[]): RenameMapping[] {
 /**
  * Update imports in a file
  */
-function updateImportsInFile(filePath: string, mapping: RenameMapping[]): number {
+function updateImportsInFile(
+  filePath: string,
+  mapping: RenameMapping[],
+): number {
   let content = fs.readFileSync(filePath, "utf8");
   let updatedCount = 0;
 
@@ -117,11 +128,17 @@ function updateImportsInFile(filePath: string, mapping: RenameMapping[]): number
     const newName = path.parse(newBasename).name;
 
     // Match imports with the old filename
-    const importRegex = new RegExp(`from\\s+['"](\\./|\\.\\./)*(${oldName})['"]`, "g");
-    const updatedContent = content.replace(importRegex, (match, prefix, filename) => {
-      updatedCount++;
-      return match.replace(filename, newName);
-    });
+    const importRegex = new RegExp(
+      `from\\s+['"](\\./|\\.\\./)*(${oldName})['"]`,
+      "g",
+    );
+    const updatedContent = content.replace(
+      importRegex,
+      (match, prefix, filename) => {
+        updatedCount++;
+        return match.replace(filename, newName);
+      },
+    );
 
     if (content !== updatedContent) {
       content = updatedContent;
@@ -148,7 +165,9 @@ function renameFiles(mapping: RenameMapping[]): void {
         fs.renameSync(oldPath, newPath);
         stats.filesRenamed++;
       } catch (error) {
-        log.error(`Failed to rename ${oldPath}: ${error instanceof Error ? error.message : String(error)}`);
+        log.error(
+          `Failed to rename ${oldPath}: ${error instanceof Error ? error.message : String(error)}`,
+        );
         stats.errors++;
       }
     } else {
@@ -161,7 +180,9 @@ function renameFiles(mapping: RenameMapping[]): void {
  * Main function
  */
 async function main() {
-  log.info(`Starting rename operation in ${rootDir} directory${isDryRun ? " (DRY RUN)" : ""}`);
+  log.info(
+    `Starting rename operation in ${rootDir} directory${isDryRun ? " (DRY RUN)" : ""}`,
+  );
 
   // Find all TypeScript files
   const allFiles = findTypeScriptFiles(rootDir);
@@ -204,6 +225,8 @@ async function main() {
 
 // Run the script
 main().catch((error) => {
-  log.error(`Unhandled error: ${error instanceof Error ? error.message : String(error)}`);
+  log.error(
+    `Unhandled error: ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exit(1);
 });

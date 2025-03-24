@@ -1,8 +1,6 @@
 import { ElementHandle, Page } from "puppeteer";
 
-export async function getMonthNavigationButtons(
-  page: Page,
-): Promise<{
+export async function getMonthNavigationButtons(page: Page): Promise<{
   prevButton: ElementHandle<Element>;
   nextButton: ElementHandle<Element>;
 } | null> {

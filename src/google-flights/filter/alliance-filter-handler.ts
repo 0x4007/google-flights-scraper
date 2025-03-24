@@ -37,7 +37,10 @@ export async function applyAllianceFilters(page: Page): Promise<boolean> {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        const waitTime = Math.min(INITIAL_RETRY_DELAY * Math.pow(1.5, attempt - 1), MAX_RETRY_DELAY);
+        const waitTime = Math.min(
+          INITIAL_RETRY_DELAY * Math.pow(1.5, attempt - 1),
+          MAX_RETRY_DELAY,
+        );
         console.info(`Retry attempt ${attempt + 1}, waiting ${waitTime}ms`);
         await new Promise((resolve) => setTimeout(resolve, waitTime));
 
@@ -55,7 +58,9 @@ export async function applyAllianceFilters(page: Page): Promise<boolean> {
         // Check if URL changed after filter application
         const currentUrl = page.url();
         if (currentUrl !== initialUrl) {
-          console.info("URL changed after filter application, waiting for stabilization");
+          console.info(
+            "URL changed after filter application, waiting for stabilization",
+          );
           await createDelay(2000);
         }
 
@@ -71,7 +76,10 @@ export async function applyAllianceFilters(page: Page): Promise<boolean> {
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`Error applying alliance filters (attempt ${attempt + 1}):`, lastError.message);
+      console.error(
+        `Error applying alliance filters (attempt ${attempt + 1}):`,
+        lastError.message,
+      );
 
       if (attempt === MAX_RETRIES - 1) {
         console.warn(`Max retries reached, last error: ${lastError.message}`);
@@ -87,7 +95,9 @@ async function runFilterProcess(page: Page): Promise<FilterResult> {
   const isAirlinesButtonFound = await clickAirlinesFilterButton(page);
 
   if (!isAirlinesButtonFound) {
-    console.warn("Airlines filter button not found, skipping alliance filtering");
+    console.warn(
+      "Airlines filter button not found, skipping alliance filtering",
+    );
     return { success: false, checkboxesChecked: 0 };
   }
 
@@ -116,7 +126,10 @@ async function runFilterProcess(page: Page): Promise<FilterResult> {
   return { success: true, checkboxesChecked };
 }
 
-async function findButtonByContains(page: Page, selector: string): Promise<ElementHandleOrNull> {
+async function findButtonByContains(
+  page: Page,
+  selector: string,
+): Promise<ElementHandleOrNull> {
   const containsMatch = RegExp(/:contains\("([^"]+)"\)/).exec(selector);
   if (!containsMatch) return null;
 
@@ -125,19 +138,28 @@ async function findButtonByContains(page: Page, selector: string): Promise<Eleme
   // Wait for any button containing the text
   await page.waitForFunction(
     (text) => {
-      const buttons = Array.from(document.querySelectorAll<HTMLElement>('button, [role="button"]'));
+      const buttons = Array.from(
+        document.querySelectorAll<HTMLElement>('button, [role="button"]'),
+      );
       return buttons.some((element) => element.textContent?.includes(text));
     },
     { timeout: 5000 },
-    buttonText
+    buttonText,
   );
 
   const button = await page.evaluateHandle((text: string): Element | null => {
-    const buttons = Array.from(document.querySelectorAll<HTMLElement>('button, [role="button"]'));
-    return buttons.find((element) => element.textContent?.includes(text)) ?? null;
+    const buttons = Array.from(
+      document.querySelectorAll<HTMLElement>('button, [role="button"]'),
+    );
+    return (
+      buttons.find((element) => element.textContent?.includes(text)) ?? null
+    );
   }, buttonText);
 
-  const isNull = await page.evaluate((element: Element | null) => element === null, button);
+  const isNull = await page.evaluate(
+    (element: Element | null) => element === null,
+    button,
+  );
   if (!isNull) {
     console.info(`Found Airlines filter button with text: ${buttonText}`);
     return button as ElementHandle<Element>;
@@ -145,7 +167,10 @@ async function findButtonByContains(page: Page, selector: string): Promise<Eleme
   return null;
 }
 
-async function findButtonByDirectSelector(page: Page, selector: string): Promise<ElementHandleOrNull> {
+async function findButtonByDirectSelector(
+  page: Page,
+  selector: string,
+): Promise<ElementHandleOrNull> {
   const button = await page.$(selector);
   if (button) {
     console.info(`Found Airlines filter button with selector: ${selector}`);
@@ -157,12 +182,16 @@ async function findButtonByDirectSelector(page: Page, selector: string): Promise
 async function findButtonBySelector(page: Page): Promise<ElementHandleOrNull> {
   for (const selector of AIRLINES_FILTER_SELECTORS) {
     try {
-      const button = selector.includes(":contains") ? await findButtonByContains(page, selector) : await findButtonByDirectSelector(page, selector);
+      const button = selector.includes(":contains")
+        ? await findButtonByContains(page, selector)
+        : await findButtonByDirectSelector(page, selector);
 
       if (button) return button;
     } catch (error) {
       if (error instanceof Error) {
-        console.debug(`Selector ${selector} not found or error: ${error.message}`);
+        console.debug(
+          `Selector ${selector} not found or error: ${error.message}`,
+        );
       }
     }
   }
@@ -173,11 +202,18 @@ async function findButtonByText(page: Page): Promise<ElementHandleOrNull> {
   try {
     const buttons = await page.$$('button, [role="button"]');
     for (const button of buttons) {
-      const textContent = await button.evaluate((element: Element) => element.textContent?.toLowerCase() ?? "");
-      const ariaLabel = await button.evaluate((element: Element) => element.getAttribute("aria-label")?.toLowerCase() ?? "");
+      const textContent = await button.evaluate(
+        (element: Element) => element.textContent?.toLowerCase() ?? "",
+      );
+      const ariaLabel = await button.evaluate(
+        (element: Element) =>
+          element.getAttribute("aria-label")?.toLowerCase() ?? "",
+      );
 
       if (textContent.includes("airline") || ariaLabel.includes("airline")) {
-        console.info(`Found Airlines filter button by text content: ${textContent}`);
+        console.info(
+          `Found Airlines filter button by text content: ${textContent}`,
+        );
         return button;
       }
     }
@@ -189,7 +225,10 @@ async function findButtonByText(page: Page): Promise<ElementHandleOrNull> {
   return null;
 }
 
-async function clickButton(button: ElementHandle<Element>, page: Page): Promise<boolean> {
+async function clickButton(
+  button: ElementHandle<Element>,
+  page: Page,
+): Promise<boolean> {
   try {
     await button.click({ delay: 100 });
     console.info("Clicked Airlines filter button with standard click");
@@ -203,7 +242,10 @@ async function clickButton(button: ElementHandle<Element>, page: Page): Promise<
   }
 }
 
-async function fallbackJavaScriptClick(button: ElementHandle<Element>, page: Page): Promise<boolean> {
+async function fallbackJavaScriptClick(
+  button: ElementHandle<Element>,
+  page: Page,
+): Promise<boolean> {
   try {
     await page.evaluate((element: Element) => {
       if (element instanceof HTMLElement) {
@@ -213,7 +255,7 @@ async function fallbackJavaScriptClick(button: ElementHandle<Element>, page: Pag
             view: window,
             bubbles: true,
             cancelable: true,
-          })
+          }),
         );
       }
     }, button);
@@ -231,7 +273,8 @@ async function fallbackJavaScriptClick(button: ElementHandle<Element>, page: Pag
 async function clickAirlinesFilterButton(page: Page): Promise<boolean> {
   console.info("Clicking Airlines filter button");
 
-  const button = (await findButtonBySelector(page)) || (await findButtonByText(page));
+  const button =
+    (await findButtonBySelector(page)) || (await findButtonByText(page));
 
   if (!button) {
     console.warn("Could not find Airlines filter button");
@@ -249,23 +292,33 @@ interface AllianceElements {
 
 async function findAllianceElements(page: Page): Promise<boolean> {
   const elements = await page.evaluate((): AllianceElements => {
-    const elements = Array.from(document.querySelectorAll("div, span, h3, h4, label"));
-    const allianceSection = elements.find(el => el.textContent?.trim() === "Alliances");
+    const elements = Array.from(
+      document.querySelectorAll("div, span, h3, h4, label"),
+    );
+    const allianceSection = elements.find(
+      (el) => el.textContent?.trim() === "Alliances",
+    );
 
     return {
       hasHeader: !!allianceSection,
-      hasAllianceNames: !!allianceSection?.parentElement?.querySelector("label"),
-      hasCheckboxes: document.querySelectorAll('input[type="checkbox"]').length > 0,
+      hasAllianceNames:
+        !!allianceSection?.parentElement?.querySelector("label"),
+      hasCheckboxes:
+        document.querySelectorAll('input[type="checkbox"]').length > 0,
     };
   });
 
-  return elements.hasHeader || elements.hasAllianceNames || elements.hasCheckboxes;
+  return (
+    elements.hasHeader || elements.hasAllianceNames || elements.hasCheckboxes
+  );
 }
 
 async function checkForCheckboxes(page: Page): Promise<boolean> {
   const checkboxes = await page.$$('input[type="checkbox"]');
   if (checkboxes.length > 0) {
-    console.info(`Found ${checkboxes.length} checkboxes, assuming alliance options are visible`);
+    console.info(
+      `Found ${checkboxes.length} checkboxes, assuming alliance options are visible`,
+    );
     return true;
   }
   return false;
@@ -280,7 +333,9 @@ async function waitForAllianceOptions(page: Page): Promise<boolean> {
       return true;
     }
 
-    console.warn("Could not find alliance options with JavaScript, waiting additional time");
+    console.warn(
+      "Could not find alliance options with JavaScript, waiting additional time",
+    );
     await createDelay(3000);
 
     return await checkForCheckboxes(page);
@@ -296,24 +351,31 @@ async function checkAllianceSpecificCheckboxes(page: Page): Promise<number> {
   return await page.evaluate(() => {
     // Find the Alliances section
     const allianceSection = Array.from(document.querySelectorAll("div")).find(
-      div => div.textContent?.trim() === "Alliances"
+      (div) => div.textContent?.trim() === "Alliances",
     )?.parentElement;
 
     if (!allianceSection) return 0;
 
     // Get all labels under alliance section
-    const labels = Array.from(allianceSection.querySelectorAll<HTMLLabelElement>("label"));
+    const labels = Array.from(
+      allianceSection.querySelectorAll<HTMLLabelElement>("label"),
+    );
     let count = 0;
 
     for (const label of labels) {
       // Find associated checkbox
       const forId = label.getAttribute("for");
       const checkbox = forId
-        ? document.getElementById(forId) as HTMLInputElement | null
+        ? (document.getElementById(forId) as HTMLInputElement | null)
         : label.querySelector('input[type="checkbox"]');
 
       // Click if checkbox exists and is not checked
-      if (checkbox && checkbox instanceof HTMLInputElement && checkbox.type === "checkbox" && !checkbox.checked) {
+      if (
+        checkbox &&
+        checkbox instanceof HTMLInputElement &&
+        checkbox.type === "checkbox" &&
+        !checkbox.checked
+      ) {
         checkbox.click();
         count++;
       }
@@ -326,12 +388,14 @@ async function checkAllianceSpecificCheckboxes(page: Page): Promise<number> {
 async function checkRemainingCheckboxes(page: Page): Promise<number> {
   return await page.evaluate(() => {
     let count = 0;
-    document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((checkbox) => {
-      if (!checkbox.checked) {
-        checkbox.click();
-        count++;
-      }
-    });
+    document
+      .querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
+      .forEach((checkbox) => {
+        if (!checkbox.checked) {
+          checkbox.click();
+          count++;
+        }
+      });
     return count;
   });
 }
@@ -343,10 +407,12 @@ async function checkAllAllianceCheckboxes(page: Page): Promise<number> {
     // Wait for alliance section to be fully loaded
     await page.waitForFunction(
       () => {
-        const elements = Array.from(document.querySelectorAll("div, span, h3, h4, label"));
+        const elements = Array.from(
+          document.querySelectorAll("div, span, h3, h4, label"),
+        );
         return elements.some((el) => el.textContent?.includes("Alliances"));
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
 
     // First try alliance-specific checkboxes
@@ -358,11 +424,15 @@ async function checkAllAllianceCheckboxes(page: Page): Promise<number> {
     }
 
     if (checkboxCount > 0) {
-      console.info(`Checked ${checkboxCount} checkboxes with JavaScript approach`);
+      console.info(
+        `Checked ${checkboxCount} checkboxes with JavaScript approach`,
+      );
       // Increased delay to ensure changes are registered
       await createDelay(2000);
     } else {
-      console.info("No checkboxes were checked (they might already be checked)");
+      console.info(
+        "No checkboxes were checked (they might already be checked)",
+      );
     }
 
     return checkboxCount;
@@ -379,7 +449,8 @@ async function waitForResultsUpdate(page: Page): Promise<void> {
 
   try {
     // Wait for any loading indicators to appear and disappear
-    const loadingSelector = '[role="progressbar"], .gws-flights-results__progress-bar';
+    const loadingSelector =
+      '[role="progressbar"], .gws-flights-results__progress-bar';
 
     // Wait up to 2 seconds for loading indicator to appear
     try {
@@ -391,7 +462,10 @@ async function waitForResultsUpdate(page: Page): Promise<void> {
 
     // Wait for loading indicator to disappear if it appeared
     try {
-      await page.waitForSelector(loadingSelector, { hidden: true, timeout: 10000 });
+      await page.waitForSelector(loadingSelector, {
+        hidden: true,
+        timeout: 10000,
+      });
       console.info("Loading completed");
     } catch {
       console.warn("Loading indicator did not disappear");
@@ -404,7 +478,9 @@ async function waitForResultsUpdate(page: Page): Promise<void> {
   } catch (error) {
     if (error instanceof Error) {
       console.error("Error waiting for results update:", error.message);
-      console.warn("Continuing search despite error waiting for results update");
+      console.warn(
+        "Continuing search despite error waiting for results update",
+      );
     }
   }
 }
@@ -422,40 +498,53 @@ async function verifyFiltersApplied(page: Page): Promise<boolean> {
       };
 
       // Check for checked checkboxes (expanded selector)
-      const checkboxes = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="checkbox"], [role="checkbox"], [aria-checked="true"]'));
-      results.hasCheckedBoxes = checkboxes.some((checkbox) => checkbox.checked || checkbox.getAttribute("aria-checked") === "true");
+      const checkboxes = Array.from(
+        document.querySelectorAll<HTMLInputElement>(
+          'input[type="checkbox"], [role="checkbox"], [aria-checked="true"]',
+        ),
+      );
+      results.hasCheckedBoxes = checkboxes.some(
+        (checkbox) =>
+          checkbox.checked || checkbox.getAttribute("aria-checked") === "true",
+      );
 
       // Check for active filter indicators (expanded)
       const activeFilters = document.querySelectorAll(
         '[aria-selected="true"], .active-filter, .selected-filter, ' +
           '[data-selected="true"], [data-active="true"], ' +
-          '[aria-pressed="true"], .VfPpkd-LgbsSe-OWXEXe-INsAgc'
+          '[aria-pressed="true"], .VfPpkd-LgbsSe-OWXEXe-INsAgc',
       );
       results.hasActiveFilters = activeFilters.length > 0;
 
       // Get all alliance names from actual DOM
       const allianceSection = Array.from(document.querySelectorAll("div")).find(
-        div => div.textContent?.trim() === "Alliances"
+        (div) => div.textContent?.trim() === "Alliances",
       )?.parentElement;
 
       const allAllianceNames = allianceSection
         ? Array.from(allianceSection.querySelectorAll("label"))
-            .map(label => label.textContent?.trim())
+            .map((label) => label.textContent?.trim())
             .filter(Boolean)
         : [];
 
-      results.hasAllianceText = allAllianceNames.length > 0 &&
-        allAllianceNames.some(name => document.body.textContent?.includes(name ?? ""));
+      results.hasAllianceText =
+        allAllianceNames.length > 0 &&
+        allAllianceNames.some((name) =>
+          document.body.textContent?.includes(name ?? ""),
+        );
 
       // Check for alliance-related data attributes
-      results.hasDataAttributes = Array.from(document.querySelectorAll('[data-filtertype="6"]')).length > 0;
+      results.hasDataAttributes =
+        Array.from(document.querySelectorAll('[data-filtertype="6"]')).length >
+        0;
 
       // Check for alliance labels
-      results.hasAllianceLabels = allAllianceNames.length > 0 &&
-        allAllianceNames.some(name =>
-          Array.from(document.querySelectorAll("label, span, div")).some(el =>
-            el.textContent?.includes(name ?? "")
-          )
+      results.hasAllianceLabels =
+        allAllianceNames.length > 0 &&
+        allAllianceNames.some((name) =>
+          Array.from(document.querySelectorAll("label, span, div")).some((el) =>
+            el.textContent?.includes(name ?? ""),
+          ),
         );
 
       return results;
@@ -464,7 +553,12 @@ async function verifyFiltersApplied(page: Page): Promise<boolean> {
     console.info("UI State:", JSON.stringify(uiState));
 
     // If we see positive indicators in the UI, consider it verified
-    if (uiState.hasCheckedBoxes || uiState.hasActiveFilters || uiState.hasDataAttributes || uiState.hasAllianceLabels) {
+    if (
+      uiState.hasCheckedBoxes ||
+      uiState.hasActiveFilters ||
+      uiState.hasDataAttributes ||
+      uiState.hasAllianceLabels
+    ) {
       console.info("Verified alliance filters through UI state");
       return true;
     }
@@ -488,8 +582,15 @@ async function verifyFiltersApplied(page: Page): Promise<boolean> {
 
     // Final verification after reapplying
     const finalState = await page.evaluate(() => {
-      const checkboxes = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="checkbox"], [role="checkbox"], [aria-checked="true"]'));
-      return checkboxes.some((checkbox) => checkbox.checked || checkbox.getAttribute("aria-checked") === "true");
+      const checkboxes = Array.from(
+        document.querySelectorAll<HTMLInputElement>(
+          'input[type="checkbox"], [role="checkbox"], [aria-checked="true"]',
+        ),
+      );
+      return checkboxes.some(
+        (checkbox) =>
+          checkbox.checked || checkbox.getAttribute("aria-checked") === "true",
+      );
     });
     return finalState;
   } catch (error) {
