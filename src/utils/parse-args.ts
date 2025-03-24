@@ -1,24 +1,24 @@
-import { FlightSearchParameters } from '../types';
+import { FlightSearchParameters } from "../types";
 
-const DEFAULT_FROM = 'Seoul';
-const DEFAULT_TO = 'Tokyo';
+const DEFAULT_FROM = "Seoul";
+const DEFAULT_TO = "Tokyo";
 
 export function parseArgs(args: string[]): FlightSearchParameters {
   const params = new Map<string, string>();
-  let includeBudget = false;
+  let isBudgetIncluded = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg.startsWith('--')) {
-      if (arg === '--include-budget') {
-        includeBudget = true;
+    if (arg.startsWith("--")) {
+      if (arg === "--include-budget") {
+        isBudgetIncluded = true;
         continue;
       }
 
       const value = args[i + 1];
       // Skip args starting with --
-      if (!value || value.startsWith('--')) {
+      if (!value || value.startsWith("--")) {
         continue;
       }
 
@@ -32,40 +32,40 @@ export function parseArgs(args: string[]): FlightSearchParameters {
   }
 
   // Apply defaults for required parameters if missing
-  if (!params.has('from')) {
-    params.set('from', DEFAULT_FROM);
+  if (!params.has("from")) {
+    params.set("from", DEFAULT_FROM);
   }
-  if (!params.has('to')) {
-    params.set('to', DEFAULT_TO);
+  if (!params.has("to")) {
+    params.set("to", DEFAULT_TO);
   }
 
   // Validate departure date (always required)
-  if (!params.has('departure')) {
-    throw new Error('Missing required parameter: departure');
+  if (!params.has("departure")) {
+    throw new Error("Missing required parameter: departure");
   }
 
   // Build and validate dates
-  const departure = new Date(params.get('departure')!);
+  const departure = new Date(params.get("departure")!);
   if (isNaN(departure.getTime())) {
-    throw new Error('Invalid departure date format. Use YYYY-MM-DD');
+    throw new Error("Invalid departure date format. Use YYYY-MM-DD");
   }
 
   let returnDate: Date | undefined;
-  if (params.has('return')) {
-    returnDate = new Date(params.get('return')!);
+  if (params.has("return")) {
+    returnDate = new Date(params.get("return")!);
     if (isNaN(returnDate.getTime())) {
-      throw new Error('Invalid return date format. Use YYYY-MM-DD');
+      throw new Error("Invalid return date format. Use YYYY-MM-DD");
     }
     if (returnDate < departure) {
-      throw new Error('Return date cannot be earlier than departure date');
+      throw new Error("Return date cannot be earlier than departure date");
     }
   }
 
   return {
-    from: params.get('from')!,
-    to: params.get('to')!,
-    departure: params.get('departure')!,
-    return: params.get('return'),
-    includeBudget
+    from: params.get("from")!,
+    to: params.get("to")!,
+    departure: params.get("departure")!,
+    return: params.get("return"),
+    includeBudget: isBudgetIncluded,
   };
 }

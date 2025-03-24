@@ -4,7 +4,11 @@
   "description": "Minimal example of using Puppeteer on GitHub Actions with Bun & TypeScript",
   "main": "src/index.ts",
   "scripts": {
-    "screenshot": "bun run src/index.ts"
+    "screenshot": "bun run src/index.ts",
+    "format": "run-s format:*",
+    "format:lint": "eslint --fix .",
+    "format:prettier": "prettier --write .",
+    "format:cspell": "cspell **/*"
   },
   "keywords": [
     "puppeteer",
@@ -15,11 +19,22 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "prettier": "^3.5.3",
     "puppeteer": "^22.3.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.23.0",
     "@types/node": "^20.11.5",
+    "@typescript-eslint/eslint-plugin": "^8.27.0",
+    "@typescript-eslint/parser": "^8.27.0",
     "bun-types": "^1.0.25",
-    "typescript": "^5.3.3"
+    "cspell": "^8.17.5",
+    "eslint": "^9.23.0",
+    "eslint-plugin-check-file": "^3.1.0",
+    "eslint-plugin-sonarjs": "^3.0.2",
+    "globals": "^16.0.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.27.0"
   }
 }

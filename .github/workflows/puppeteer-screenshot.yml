@@ -5,30 +5,30 @@ on:
   push:
   # Run on pull requests to main
   pull_request:
-    branches: [ main ]
+    branches: [main]
   # Allow manual triggering with input parameters
   workflow_dispatch:
     inputs:
       from:
-        description: 'Where from? (location)'
+        description: "Where from? (location)"
         required: false
         type: string
-        default: 'Seoul'
+        default: "Seoul"
       to:
-        description: 'Where to? (location)'
+        description: "Where to? (location)"
         required: true
         type: string
-        default: 'Tokyo'
+        default: "Tokyo"
       departure:
-        description: 'Departure date (YYYY-MM-DD, defaults to 1 week from now)'
+        description: "Departure date (YYYY-MM-DD, defaults to 1 week from now)"
         required: false
         type: string
       return:
-        description: 'Return date (YYYY-MM-DD, defaults to 2 weeks from now)'
+        description: "Return date (YYYY-MM-DD, defaults to 2 weeks from now)"
         required: false
         type: string
       include_budget:
-        description: 'Include budget carriers'
+        description: "Include budget carriers"
         required: false
         type: boolean
         default: false
@@ -38,37 +38,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Calculate default dates
-      id: dates
-      run: |
-        departure=$(date -d "+7 days" +%Y-%m-%d)
-        return=$(date -d "+14 days" +%Y-%m-%d)
-        echo "departure=$departure" >> $GITHUB_OUTPUT
-        echo "return=$return" >> $GITHUB_OUTPUT
+      - name: Calculate default dates
+        id: dates
+        run: |
+          departure=$(date -d "+7 days" +%Y-%m-%d)
+          return=$(date -d "+14 days" +%Y-%m-%d)
+          echo "departure=$departure" >> $GITHUB_OUTPUT
+          echo "return=$return" >> $GITHUB_OUTPUT
 
-    - name: Set up Bun
-      uses: oven-sh/setup-bun@v1
-      with:
-        bun-version: latest
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
-    - name: Install dependencies
-      run: bun install
+      - name: Install dependencies
+        run: bun install
 
-    - name: Take screenshot
-      run: >
-        bun run src/index.ts
-        --from "${{ github.event.inputs.from }}"
-        --to "${{ github.event.inputs.to }}"
-        --departure "${{ github.event.inputs.departure || steps.dates.outputs.departure }}"
-        --return "${{ github.event.inputs.return || steps.dates.outputs.return }}"
-        ${{ github.event.inputs.include_budget == 'true' && '--include-budget' }}
+      - name: Take screenshot
+        run: >
+          bun run src/index.ts
+          --from "${{ github.event.inputs.from }}"
+          --to "${{ github.event.inputs.to }}"
+          --departure "${{ github.event.inputs.departure || steps.dates.outputs.departure }}"
+          --return "${{ github.event.inputs.return || steps.dates.outputs.return }}"
+          ${{ github.event.inputs.include_budget == 'true' && '--include-budget' }}
 
-    - name: Upload screenshot as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: flight-screenshots
-        path: screenshot/*.png
-        retention-days: 7
+      - name: Upload screenshot as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flight-screenshots
+          path: screenshot/*.png
+          retention-days: 7
