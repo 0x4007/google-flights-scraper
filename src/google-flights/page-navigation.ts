@@ -4,6 +4,7 @@ import { selectDepartureDate } from "./select-date/departure-date";
 import { selectReturnDate } from "./select-date/return-date";
 import { whereFrom } from "./select-locations/where-from";
 import { whereTo } from "./select-locations/where-to";
+import { clickSearchButton } from "./click-search-button";
 
 export async function navigateToFlights(
   page: Page,
@@ -30,6 +31,8 @@ export async function navigateToFlights(
   if (parameters.returnDate) {
     await selectReturnDate(page, parameters.returnDate);
   }
+
+  await clickSearchButton(page);
 
   // Add a delay to ensure the screenshot captures the entered location
   await new Promise((resolve) => setTimeout(resolve, 1000));
