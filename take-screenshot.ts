@@ -1,6 +1,6 @@
-const puppeteer = require('puppeteer');
-const path = require('path');
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
+import puppeteer from 'puppeteer';
 
 // Ensure the screenshot directory exists
 const screenshotDir = path.join(__dirname, 'screenshot');
@@ -8,7 +8,7 @@ if (!fs.existsSync(screenshotDir)) {
   fs.mkdirSync(screenshotDir, { recursive: true });
 }
 
-async function takeScreenshot() {
+async function takeScreenshot(): Promise<void> {
   console.log('Launching browser...');
 
   // Launch the browser with additional args to help in CI environment

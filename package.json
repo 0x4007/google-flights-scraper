@@ -1,18 +1,25 @@
 {
   "name": "puppeteer-on-actions",
   "version": "1.0.0",
-  "description": "Minimal example of using Puppeteer on GitHub Actions",
-  "main": "index.js",
+  "description": "Minimal example of using Puppeteer on GitHub Actions with Bun & TypeScript",
+  "main": "take-screenshot.ts",
   "scripts": {
-    "screenshot": "node take-screenshot.js"
+    "screenshot": "bun run take-screenshot.ts"
   },
   "keywords": [
     "puppeteer",
-    "github-actions"
+    "github-actions",
+    "bun",
+    "typescript"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "puppeteer": "^22.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "bun-types": "^1.0.25",
+    "typescript": "^5.3.3"
   }
 }

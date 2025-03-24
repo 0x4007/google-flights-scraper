@@ -1,6 +1,6 @@
-# Puppeteer on GitHub Actions
+# Puppeteer on GitHub Actions with Bun & TypeScript
 
-A minimal proof-of-concept repository demonstrating issues with Puppeteer screen capture on GitHub Actions.
+A minimal proof-of-concept repository demonstrating issues with Puppeteer screen capture on GitHub Actions, built with Bun and TypeScript.
 
 ## Purpose
 
@@ -10,8 +10,8 @@ This repository serves as a minimal demonstration of using Puppeteer within GitH
 
 The repository contains:
 
-1. A simple Node.js script (`take-screenshot.js`) that uses Puppeteer to navigate to flights.google.com and capture a screenshot
-2. A GitHub Actions workflow (`.github/workflows/puppeteer-screenshot.yml`) that runs this script on push, pull request, or manual trigger
+1. A TypeScript script (`take-screenshot.ts`) that uses Puppeteer to navigate to flights.google.com and capture a screenshot
+2. A GitHub Actions workflow (`.github/workflows/puppeteer-screenshot.yml`) that runs this script on every push, pull request, or manual trigger
 3. Configuration to upload the resulting screenshots as GitHub artifacts
 
 ## Running Locally
@@ -20,10 +20,10 @@ To test this repository locally:
 
 ```bash
 # Install dependencies
-npm ci
+bun install
 
 # Take screenshot
-node take-screenshot.js
+bun run take-screenshot.ts
 ```
 
 The screenshot will be saved to the `screenshot` directory.
@@ -33,9 +33,9 @@ The screenshot will be saved to the `screenshot` directory.
 The GitHub Action workflow:
 
 1. Runs on Ubuntu latest
-2. Sets up Node.js 20
+2. Sets up Bun runtime
 3. Installs dependencies
-4. Runs the screenshot script
+4. Runs the TypeScript screenshot script directly with Bun
 5. Uploads any PNG files in the screenshot directory as artifacts
 
 ## Viewing the Screenshots
