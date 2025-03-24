@@ -28,8 +28,8 @@ export async function selectLocation(
   await field.click();
   await clearInputField(page, field);
 
-  const sanitizedValue = fieldType === "from" ? value.replace(/,/g, "") : value;
-
+  // Sanitize value by removing commas for both from and to fields
+  const sanitizedValue = value.replace(/,/g, "");
   await page.keyboard.type(sanitizedValue, { delay: 200 });
 
   // Handle suggestions
