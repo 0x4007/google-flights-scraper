@@ -45,7 +45,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
     // Extract flight data using DOM selectors
     const flights = await page.evaluate(() => {
       // Define utility functions for DOM operations in browser context
-      function getText(element) {
+      function getText(element: HTMLElement | null) {
         return element?.textContent?.trim() ?? null;
       }
 
@@ -214,7 +214,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             };
 
             // Collect all visible text elements for airline names and flight info
-            const textElements = Array.from(flightElement.querySelectorAll("div, span"));
+            const textElements = Array.from(flightElement.querySelectorAll("div, span")) as HTMLElement[];
 
             for (const el of textElements) {
               const text = getText(el);
