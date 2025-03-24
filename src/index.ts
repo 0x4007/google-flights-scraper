@@ -1,6 +1,6 @@
-import { parseArgs } from './utils/parse-args';
-import { launchBrowser } from './utils/launch';
 import { navigateToFlights } from './google-flights/page-navigation';
+import { launchBrowser } from './utils/launch';
+import { parseArgs } from './utils/parse-args';
 import { captureAndSaveScreenshot } from './utils/take-screenshot';
 
 async function main() {
@@ -22,7 +22,7 @@ async function main() {
     const browser = await launchBrowser();
     try {
       const page = await browser.newPage();
-      await navigateToFlights(page);
+      await navigateToFlights(page, parameters);
       await captureAndSaveScreenshot(page, parameters);
     } finally {
       await browser.close();
