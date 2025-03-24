@@ -8,6 +8,7 @@
     "start": "bun run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --return 2024-04-15",
     "dev": "bun --watch run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --return 2024-04-15",
     "screenshot": "bun run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --return 2024-04-15",
+    "iterate": "bun --watch run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --return 2024-04-15",
     "format": "run-s format:*",
     "format:lint": "eslint --fix .",
     "format:prettier": "prettier --write .",

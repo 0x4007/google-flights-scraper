@@ -1,7 +1,6 @@
-import * as fs from "fs";
-import * as path from 'path';
 import { Page } from "puppeteer";
 import { FlightSearchParameters } from "../types";
+import { gaManager } from "../genetic-algorithm/ga-manager";
 import { applyAllianceFilters } from "./filter/alliance-filter-handler";
 import { scrapeFlightPrices } from "./scrape/price-scraper";
 import { clickSearchButton } from "./search/click-search-button/click-search-button";
@@ -40,18 +39,16 @@ export async function navigateToFlights(
 
   await applyAllianceFilters(page);
 
+  // Scrape flight data
   const flightData = await scrapeFlightPrices(page);
-
   console.trace({ flightData });
-  if (flightData.length) {
-    const logsPath = path.join(import.meta.dir, "..", "logs");
-    fs.writeFileSync(
-      path.join(logsPath, `flights-${Date.now()}.json`),
-      JSON.stringify(flightData, null, 2),
-      "utf-8",
-    );
 
-    // Add a delay to ensure the screenshot captures the entered location
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
+  // Record result in the genetic algorithm manager
+  const result = await gaManager.recordResult(parameters, flightData);
+
+  console.log(`Iteration ${result.metadata.iteration} completed with score: ${result.metadata.score}`);
+  console.log(`Results saved with git commit: ${result.metadata.gitCommit}`);
+
+  // Add a delay to ensure the screenshot captures the entered location
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 }
