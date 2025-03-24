@@ -2,7 +2,7 @@ import { Page } from "puppeteer";
 import { gaManager } from "../genetic-algorithm/ga-manager";
 import { FlightSearchParameters } from "../types";
 import { applyAllianceFilters } from "./filter/alliance-filter-handler";
-import { scrapeFlightPrices } from "./scrape/price-scraper";
+import { scrapeFlightPrices } from "./scrape/scrapeFlightPrices";
 import { clickSearchButton } from "./search/click-search-button/click-search-button";
 import { selectDepartureDate } from "./search/select-date/departure-date";
 import { selectReturnDate } from "./search/select-date/return-date";
