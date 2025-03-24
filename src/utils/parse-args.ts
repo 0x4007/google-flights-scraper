@@ -1,5 +1,8 @@
 import { FlightSearchParameters } from '../types';
 
+const DEFAULT_FROM = 'Seoul';
+const DEFAULT_TO = 'Tokyo';
+
 export function parseArgs(args: string[]): FlightSearchParameters {
   const params = new Map<string, string>();
   let includeBudget = false;
@@ -14,26 +17,31 @@ export function parseArgs(args: string[]): FlightSearchParameters {
       }
 
       const value = args[i + 1];
-      // Skip empty strings or args starting with --
+      // Skip args starting with --
       if (!value || value.startsWith('--')) {
         continue;
       }
 
       // Remove the '--' prefix and store the key-value pair if value is not empty
       const trimmedValue = value.trim();
-      if (trimmedValue) {
+      if (trimmedValue && trimmedValue !== '""') {
         params.set(arg.slice(2), trimmedValue);
       }
       i++; // Skip the next argument since we used it as a value
     }
   }
 
-  // Validate required parameters
-  const requiredParams = ['from', 'to', 'departure'];
-  for (const param of requiredParams) {
-    if (!params.has(param)) {
-      throw new Error(`Missing required parameter: ${param}`);
-    }
+  // Apply defaults for required parameters if missing
+  if (!params.has('from')) {
+    params.set('from', DEFAULT_FROM);
+  }
+  if (!params.has('to')) {
+    params.set('to', DEFAULT_TO);
+  }
+
+  // Validate departure date (always required)
+  if (!params.has('departure')) {
+    throw new Error('Missing required parameter: departure');
   }
 
   // Build and validate dates
