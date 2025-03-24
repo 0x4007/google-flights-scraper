@@ -19,7 +19,7 @@ export async function navigateToFlights(
   });
 
   // Wait for the page to be fully loaded
-  await page.waitForSelector('[aria-label="Where from? "]', { timeout: 10000 });
+  await page.waitForSelector('[aria-label^="Where from?"]', { timeout: 10000 });
 
   console.log(`Setting origin location to: ${parameters.from}`);
   await whereFrom(page, parameters.from);
