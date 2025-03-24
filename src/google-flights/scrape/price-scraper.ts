@@ -18,7 +18,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
   try {
     // Wait for results to load
-console.debug("Waiting for flight results to load");
+    console.debug("Waiting for flight results to load");
     await page.waitForSelector("body", { timeout: 10000 });
 
     // Extract flight data using DOM selectors
@@ -270,7 +270,7 @@ console.debug("Waiting for flight results to load");
       }
 
       // Process flight elements in a section
-      function processFlightElements(elements: NodeListOf<Element>, isTopFlight: boolean) {
+      function processFlightElements(elements: Element[], isTopFlight: boolean) {
         elements.forEach((flightElement) => {
           const flightDetails = extractFlightDetails(flightElement);
           if (flightDetails) {
@@ -280,13 +280,12 @@ console.debug("Waiting for flight results to load");
         });
       }
 
-
       // Find and process top flights
       const topFlightsHeader = Array.from(document.querySelectorAll("h3")).find((el) => el.textContent?.includes("Top departing flights"));
       if (topFlightsHeader) {
         const topFlightsSection = topFlightsHeader.closest("div")?.parentElement;
         if (topFlightsSection) {
-          const topFlightElements = topFlightsSection.querySelectorAll("ul > li");
+          const topFlightElements = Array.from(topFlightsSection.querySelectorAll("ul > li"));
           processFlightElements(topFlightElements, true);
         }
       }
@@ -296,7 +295,7 @@ console.debug("Waiting for flight results to load");
       if (otherFlightsHeader) {
         const otherFlightsSection = otherFlightsHeader.closest("div")?.parentElement;
         if (otherFlightsSection) {
-          const otherFlightElements = otherFlightsSection.querySelectorAll("ul > li");
+          const otherFlightElements = Array.from(otherFlightsSection.querySelectorAll("ul > li"));
           processFlightElements(otherFlightElements, false);
         }
       }
@@ -316,7 +315,6 @@ console.debug("Waiting for flight results to load");
 
       // Return only unique flights
       return Array.from(flightIdMap.values());
-
     });
 
     // Log results
