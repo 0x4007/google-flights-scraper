@@ -41,13 +41,13 @@ export async function navigateToFlights(
 
   // Scrape flight data
   const flightData = await scrapeFlightPrices(page);
-  console.trace({ flightData });
+  console.dir({ flightData }, { depth: null, colors: true });
 
   // Record result in the genetic algorithm manager
   const result = await gaManager.recordResult(parameters, flightData);
 
   console.log(
-    `Iteration ${result.metadata.iteration} completed with score: ${result.metadata.score}`,
+    `Iteration ${result.metadata.iteration} completed: ${result.metadata}`,
   );
   console.log(`Results saved with git commit: ${result.metadata.gitCommit}`);
 
