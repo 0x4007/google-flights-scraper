@@ -1,6 +1,6 @@
 import { ElementHandle, Page } from "puppeteer";
 import { getCurrentMonthYear, MonthYear } from "./get-current-month-to-year";
-import { delay } from "../../../utils/delay";
+import { delay } from "../../../../utils/delay";
 
 export async function navigateMonths(
   page: Page,

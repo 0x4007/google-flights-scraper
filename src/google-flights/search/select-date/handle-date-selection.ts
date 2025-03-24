@@ -1,7 +1,7 @@
 import { Page } from "puppeteer";
-import { DateInfo } from "../../utils/parse-date";
 import { navigateToMonth } from "./calendar/navigate-to-month";
 import { selectDateInCalendar } from "./calendar/select-date-in-calendar";
+import { DateInfo } from "../../../utils/parse-date";
 
 export async function handleDateSelection(
   page: Page,

@@ -14,8 +14,8 @@ export async function captureAndSaveScreenshot(
   }
 
   // Generate screenshot filename based on search parameters
-  const screenshotName = `flights-${parameters.from}-to-${parameters.to}-${parameters.departure}${
-    parameters.return ? `-return-${parameters.return}` : ""
+  const screenshotName = `flights-${parameters.from}-to-${parameters.to}-${parameters.departureDate}${
+    parameters.returnDate ? `-return-${parameters.returnDate}` : ""
   }.png`;
   const screenshotPath = path.join(screenshotDir, screenshotName);
 

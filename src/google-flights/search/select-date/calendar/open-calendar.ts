@@ -1,6 +1,6 @@
 import { Page } from "puppeteer";
-import { delay } from "../../../utils/delay";
-import { findElementBySelectors } from "../../../utils/find-element-by-selectors";
+import { delay } from "../../../../utils/delay";
+import { findElementBySelectors } from "../../../../utils/find-element-by-selectors";
 
 const DATE_SELECTORS = [
   '[aria-label*="Departure"]',

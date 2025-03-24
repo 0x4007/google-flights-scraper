@@ -1,8 +1,8 @@
 import { Page } from "puppeteer";
-import { delay } from "../../utils/delay";
-import { parseDateString } from "../../utils/parse-date";
-import { clickDoneButton } from "../click-done-button";
+import { delay } from "../../../utils/delay";
+import { parseDateString } from "../../../utils/parse-date";
 import { handleDateSelection } from "./handle-date-selection";
+import { clickDoneButton } from "../click-done-button";
 
 export async function selectReturnDate(
   page: Page,
