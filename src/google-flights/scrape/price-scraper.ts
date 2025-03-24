@@ -350,10 +350,29 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         let dateStr = "";
 
         if (ariaLabel) {
-          // Try to find date in format like "on Mon, Mar 31"
-          const dateMatch = ariaLabel.match(/on\s+([A-Za-z]{3},\s+[A-Za-z]{3}\s+\d{1,2})/);
+          // Try multiple date formats that might appear in aria-labels
+          // Format: "on Mon, Mar 31"
+          let dateMatch = ariaLabel.match(/on\s+([A-Za-z]{3},\s+[A-Za-z]{3}\s+\d{1,2})/);
           if (dateMatch && dateMatch[1]) {
             dateStr = dateMatch[1];
+          } else {
+            // Format: "on Monday, March 31"
+            dateMatch = ariaLabel.match(/on\s+([A-Za-z]+day,\s+[A-Za-z]+\s+\d{1,2})/);
+            if (dateMatch && dateMatch[1]) {
+              dateStr = dateMatch[1];
+            } else {
+              // Try to extract any date-like pattern
+              dateMatch = ariaLabel.match(/((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})/);
+              if (dateMatch && dateMatch[1]) {
+                dateStr = dateMatch[1];
+              } else {
+                // Last attempt - look for month and day
+                dateMatch = ariaLabel.match(/((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2})/i);
+                if (dateMatch && dateMatch[1]) {
+                  dateStr = dateMatch[1];
+                }
+              }
+            }
           }
         }
 
