@@ -40,8 +40,8 @@ export async function commitChanges(
       return true;
     }
 
-    // Create commit with iteration number and message
-    const commitMessage = `[Iteration ${iteration}] ${message}`;
+    // Create commit with message (don't add iteration if it's already in the message)
+    const commitMessage = message.includes(`[Iteration ${iteration}]`) ? message : `[Iteration ${iteration}] ${message}`;
     await execAsync(`git commit -m "${commitMessage}"`);
 
     console.log(`Successfully committed: ${commitMessage}`);
