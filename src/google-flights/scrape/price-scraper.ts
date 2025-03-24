@@ -1,17 +1,5 @@
 import { Page } from "puppeteer";
-
-interface FlightData {
-  price: number;
-  airlines: string[]; // Changed from airline/airlineDetails to a single array property
-  bookingCaution: null | string;
-  departureTime: null | string;
-  arrivalTime: null | string;
-  duration: null | string;
-  stops: number;
-  origin: null | string;
-  destination: null | string;
-  isTopFlight: boolean;
-}
+import { FlightData } from "../../types";
 
 export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
   console.info("Scraping flight prices and details from results page");
