@@ -17,9 +17,12 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
   console.info("Scraping flight prices and details from results page");
 
   try {
-    // Wait for results to load
+    // Wait for results to load - specifically looking for flight elements
     console.debug("Waiting for flight results to load");
-    await page.waitForSelector("body", { timeout: 10000 });
+    await page.waitForSelector(
+      'li[role="listitem"] span[aria-label$="US dollars"]',
+      { timeout: 10000 },
+    );
 
     // Extract flight data using DOM selectors
     const flights = await page.evaluate(() => {
@@ -30,7 +33,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         if (!element) return -1;
         const ariaLabel = element.getAttribute("aria-label");
         if (!ariaLabel) return -1;
-``
+
         // Extract price from aria-label like "250 US dollars"
         // Using a simple approach to avoid regex backtracking issues
         const parts = ariaLabel.split(" ");
@@ -319,51 +322,113 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       // Process all flights by section
       const flightSections = new Map();
 
-      // Find all section headers (both "Top departing flights" and "Other departing flights")
-      const sectionHeaders = Array.from(document.querySelectorAll("h3")).filter(
-        (el) => {
-          const text = el.textContent?.trim() || "";
-          return text.includes("departing flights");
-        }
+      // First find "Top departing flights" header if it exists
+      const topHeader = Array.from(document.querySelectorAll("h3")).find((el) =>
+        el.textContent?.includes("Top departing flights"),
       );
 
-      console.debug(`Found ${sectionHeaders.length} flight section headers`);
+      // Check for flights in the top section first
+      if (topHeader) {
+        // Look for the first tabpanel within the same region as the header
+        const region = topHeader.closest('[role="region"]');
+        const tabpanel = region?.querySelector('[role="tabpanel"]');
 
-      // For each section header, find its containing section
-      sectionHeaders.forEach((header) => {
-        const headerText = header.textContent?.trim() || "";
-        const isTopSection = headerText.includes("Top departing");
-
-        // Get the closest section container - this is better than using parentElement
-        // which can be too generic
-        const sectionContainer = header.closest("section") ||
-                               header.closest('[role="region"]') ||
-                               header.closest("div[jscontroller]");
-
-        if (sectionContainer) {
-          // Only gather flights that are descendants of this specific section
-          // This is more precise than the previous approach
+        if (tabpanel) {
+          // Get all flight elements from the tabpanel
           const flightElements = Array.from(
-            sectionContainer.querySelectorAll("ul > li")
-          ).filter(el => {
-            // Additional validation to ensure we're getting actual flight elements
-            // and not other list items that might be present
-            return el.querySelector('span[aria-label$="US dollars"]') !== null;
-          });
-
-          flightSections.set(sectionContainer, {
-            isTopSection,
-            elements: flightElements
-          });
-
-          console.debug(
-            `Found ${flightElements.length} flights in ${isTopSection ? "top" : "other"} section`
+            tabpanel.querySelectorAll('li[role="listitem"]'),
+          ).filter(
+            (el) => el.querySelector('span[aria-label$="US dollars"]') !== null,
           );
+
+          if (flightElements.length > 0) {
+            flightSections.set(tabpanel, {
+              isTopSection: true,
+              elements: flightElements,
+            });
+            console.debug(
+              `Found ${flightElements.length} top flights in tabpanel (role: ${tabpanel.getAttribute("role")})`,
+            );
+          }
+        } else {
+          console.debug("No tabpanel found in top flights section");
         }
-      });
+      }
+
+      // Then find "Other departing flights" section
+      const otherHeader = Array.from(document.querySelectorAll("h3")).find(
+        (el) => el.textContent?.includes("Other departing flights"),
+      );
+
+      if (otherHeader) {
+        // Look for flights in a list container after the other flights header
+        const list = otherHeader.parentElement?.querySelector('[role="list"]');
+        if (list) {
+          const flightElements = Array.from(
+            list.querySelectorAll('li[role="listitem"]'),
+          ).filter(
+            (el) => el.querySelector('span[aria-label$="US dollars"]') !== null,
+          );
+
+          if (flightElements.length > 0) {
+            flightSections.set(list, {
+              isTopSection: false,
+              elements: flightElements,
+            });
+            console.debug(
+              `Found ${flightElements.length} other flights in list`,
+            );
+          }
+        }
+      }
+
+      // If we haven't found any sections, try a fallback approach
+      if (flightSections.size === 0) {
+        console.debug(
+          "No flights found in main sections, trying fallback approach",
+        );
+
+        // Find all lists with flight prices
+        const allLists = Array.from(document.querySelectorAll("ul")).filter(
+          (ul) => ul.querySelector('li > span[aria-label$="US dollars"]'),
+        );
+
+        // Process each list
+        for (const list of allLists) {
+          const flightElements = Array.from(
+            list.querySelectorAll('li[role="listitem"]'),
+          ).filter(
+            (el) => el.querySelector('span[aria-label$="US dollars"]') !== null,
+          );
+
+          if (flightElements.length > 0) {
+            // Consider it a top section if it's in a tabpanel
+            const isTopSection = !!list.closest('[role="tabpanel"]');
+            flightSections.set(list, {
+              isTopSection,
+              elements: flightElements,
+            });
+            console.debug(
+              `Found ${flightElements.length} flights using fallback method (isTop: ${isTopSection})`,
+            );
+          }
+        }
+      }
+
+      // Extra debug info
+      console.debug(
+        `Total flight sections found: ${flightSections.size}`,
+        Array.from(flightSections.entries()).map(
+          ([el, { isTopSection, elements }]) => ({
+            role: el.getAttribute("role"),
+            isTop: isTopSection,
+            count: elements.length,
+          }),
+        ),
+      );
 
       // Process flights by section
-      flightSections.forEach(({isTopSection, elements}, _) => {
+      flightSections.forEach(({ isTopSection, elements }, _) => {
         processFlightElements(elements, isTopSection);
       });
 

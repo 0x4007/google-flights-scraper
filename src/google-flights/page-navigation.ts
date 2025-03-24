@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from 'path';
 import { Page } from "puppeteer";
 import { FlightSearchParameters } from "../types";
 import { applyAllianceFilters } from "./filter/alliance-filter-handler";
@@ -41,7 +43,15 @@ export async function navigateToFlights(
   const flightData = await scrapeFlightPrices(page);
 
   console.trace({ flightData });
+  if (flightData.length) {
+    const logsPath = path.join(import.meta.dir, "..", "logs");
+    fs.writeFileSync(
+      path.join(logsPath, `flights-${Date.now()}.json`),
+      JSON.stringify(flightData, null, 2),
+      "utf-8",
+    );
 
-  // Add a delay to ensure the screenshot captures the entered location
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Add a delay to ensure the screenshot captures the entered location
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 }
