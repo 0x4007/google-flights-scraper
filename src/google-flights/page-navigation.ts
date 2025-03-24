@@ -5,6 +5,7 @@ import { selectReturnDate } from "./search/select-date/return-date";
 import { whereFrom } from "./search/select-locations/where-from";
 import { whereTo } from "./search/select-locations/where-to";
 import { clickSearchButton } from "./search/click-search-button/click-search-button";
+import { applyAllianceFilters } from "./filter/alliance-filter-handler";
 
 export async function navigateToFlights(
   page: Page,
@@ -33,6 +34,8 @@ export async function navigateToFlights(
   }
 
   await clickSearchButton(page);
+
+  await applyAllianceFilters(page);
 
   // Add a delay to ensure the screenshot captures the entered location
   await new Promise((resolve) => setTimeout(resolve, 1000));
