@@ -825,12 +825,97 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       return uniqueFlights;
     }
 
+    // Process airline names to remove duplicates and standardize formats
+    function processAirlineNames(airlines: string[]): string[] {
+      if (!airlines || !airlines.length) return [];
+
+      // Step 1: First-pass normalization
+      const normalized = airlines.flatMap(airline => {
+        if (!airline) return [];
+
+        // Handle "Operated by X" pattern
+        if (airline.toLowerCase().startsWith("operated by")) {
+          return airline.replace(/^operated by\s+/i, "").trim();
+        }
+
+        // Split comma-separated entries
+        if (airline.includes(",")) {
+          return airline.split(",").map(part => part.trim()).filter(Boolean);
+        }
+
+        return airline.trim();
+      });
+
+      // Step 2: Look for text overlap to identify duplicates
+      const uniqueNames: string[] = [];
+      const seen = new Set<string>();
+
+      for (const name of normalized) {
+        if (seen.has(name)) continue;
+
+        // Check if this is a duplicate or subset of an existing entry
+        let isDuplicate = false;
+
+        for (let i = 0; i < uniqueNames.length; i++) {
+          const existing = uniqueNames[i];
+
+          // Check for full containment
+          if (existing.includes(name) || name.includes(existing)) {
+            // Keep the shorter name as it's likely the core airline name
+            // Unless the shorter one is just a code/abbreviation (e.g., "ANA" vs "ANA Wings")
+            const existingWords = existing.split(/\s+/).length;
+            const nameWords = name.split(/\s+/).length;
+
+            if (nameWords === 1 && existingWords > 1 && existing.includes(name)) {
+              // Keep the full name when the shorter is just an abbreviation
+              // e.g., keep "ANA Wings" over just "ANA"
+            } else if (name.length < existing.length) {
+              uniqueNames[i] = name;
+            }
+
+            isDuplicate = true;
+            break;
+          }
+
+          // Check for word overlap (e.g., "ANA" and "ANA Wings")
+          const nameWords = new Set(name.split(/\s+/));
+          const existingWords = new Set(existing.split(/\s+/));
+
+          // If there's a significant word overlap, consider them related
+          const intersection = [...nameWords].filter(word =>
+            existingWords.has(word) && word.length > 2); // Only consider words longer than 2 chars
+
+          if (intersection.length > 0) {
+            // Generally prefer the shorter name unless it's just an abbreviation
+            if (nameWords.size === 1 && existingWords.size > 1) {
+              // Keep the longer name if the shorter is just an abbreviation
+            } else if (name.length < existing.length) {
+              uniqueNames[i] = name;
+            }
+
+            isDuplicate = true;
+            break;
+          }
+        }
+
+        if (!isDuplicate) {
+          uniqueNames.push(name);
+          seen.add(name);
+        }
+      }
+
+      return uniqueNames.filter(Boolean);
+    }
+
     // Post-process flight data to enhance and clean results
     let processedFlights = flights.map((flight) => {
       // Clean up airlines array to ensure it only contains actual airlines
-      const cleanedAirlines = Array.isArray(flight.airlines)
+      let cleanedAirlines = Array.isArray(flight.airlines)
         ? flight.airlines.filter(airline => airline && !isAirportOrDate(airline))
         : [];
+
+      // Process airline names to remove duplicates and standardize
+      cleanedAirlines = processAirlineNames(cleanedAirlines);
 
       // Generate formatted display strings for routes and timings
       return {
