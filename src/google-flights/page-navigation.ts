@@ -4,7 +4,7 @@ import { selectDepartureDate } from "./select-date/departure-date";
 import { selectReturnDate } from "./select-date/return-date";
 import { whereFrom } from "./select-locations/where-from";
 import { whereTo } from "./select-locations/where-to";
-import { clickSearchButton } from "./click-search-button";
+import { clickSearchButton } from "./click-search-button/click-search-button";
 
 export async function navigateToFlights(
   page: Page,
