@@ -26,9 +26,12 @@ export function parseArgs(args: string[]): FlightSearchParameters {
       const trimmedValue = value.trim();
       if (trimmedValue && trimmedValue !== '""') {
         // Map old parameter names to new ones
-        const key = arg.slice(2) === "departure" ? "departureDate" :
-                   arg.slice(2) === "return" ? "returnDate" :
-                   arg.slice(2);
+        const key =
+          arg.slice(2) === "departure"
+            ? "departureDate"
+            : arg.slice(2) === "return"
+              ? "returnDate"
+              : arg.slice(2);
         params.set(key, trimmedValue);
       }
       i++; // Skip the next argument since we used it as a value

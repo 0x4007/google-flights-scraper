@@ -8,7 +8,9 @@
     "format": "run-s format:*",
     "format:lint": "eslint --fix .",
     "format:prettier": "prettier --write .",
-    "format:cspell": "cspell **/*"
+    "format:cspell": "cspell **/*",
+    "rename-to-kebab": "bun scripts/rename-to-kebab-case.ts",
+    "rename-to-kebab:dry-run": "bun scripts/rename-to-kebab-case.ts --dry-run --verbose"
   },
   "keywords": [
     "puppeteer",

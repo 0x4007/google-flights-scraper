@@ -4,7 +4,10 @@ import { parseDateString } from "../../utils/parse-date";
 import { clickDoneButton } from "../click-done-button";
 import { handleDateSelection } from "./handle-date-selection";
 
-export async function selectReturnDate(page: Page, returnDate: string): Promise<void> {
+export async function selectReturnDate(
+  page: Page,
+  returnDate: string,
+): Promise<void> {
   if (!page) throw new Error("Page not initialized");
 
   const returnDateInfo = parseDateString(returnDate);
