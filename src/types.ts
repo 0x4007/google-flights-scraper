@@ -26,6 +26,11 @@ export interface FlightData {
   destination: null | string;
   isTopFlight: boolean;
 
+  // Formatted display fields for output
+  formattedPrice?: string;
+  formattedRoute?: string;
+  formattedTimings?: string;
+
   // Enhanced metadata fields
   departureTimeDetails?: {
     time: string; // e.g., "6:30 PM"
