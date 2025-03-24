@@ -30,7 +30,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         if (!element) return -1;
         const ariaLabel = element.getAttribute("aria-label");
         if (!ariaLabel) return -1;
-
+``
         // Extract price from aria-label like "250 US dollars"
         // Using a simple approach to avoid regex backtracking issues
         const parts = ariaLabel.split(" ");
@@ -316,35 +316,56 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         });
       }
 
-      // Find and process top flights
-      const topFlightsHeader = Array.from(document.querySelectorAll("h3")).find(
-        (el) => el.textContent?.includes("Top departing flights"),
-      );
-      if (topFlightsHeader) {
-        const topFlightsSection =
-          topFlightsHeader.closest("div")?.parentElement;
-        if (topFlightsSection) {
-          const topFlightElements = Array.from(
-            topFlightsSection.querySelectorAll("ul > li"),
-          );
-          processFlightElements(topFlightElements, true);
-        }
-      }
+      // Process all flights by section
+      const flightSections = new Map();
 
-      // Find and process other flights
-      const otherFlightsHeader = Array.from(
-        document.querySelectorAll("h3"),
-      ).find((el) => el.textContent?.includes("Other departing flights"));
-      if (otherFlightsHeader) {
-        const otherFlightsSection =
-          otherFlightsHeader.closest("div")?.parentElement;
-        if (otherFlightsSection) {
-          const otherFlightElements = Array.from(
-            otherFlightsSection.querySelectorAll("ul > li"),
-          );
-          processFlightElements(otherFlightElements, false);
+      // Find all section headers (both "Top departing flights" and "Other departing flights")
+      const sectionHeaders = Array.from(document.querySelectorAll("h3")).filter(
+        (el) => {
+          const text = el.textContent?.trim() || "";
+          return text.includes("departing flights");
         }
-      }
+      );
+
+      console.debug(`Found ${sectionHeaders.length} flight section headers`);
+
+      // For each section header, find its containing section
+      sectionHeaders.forEach((header) => {
+        const headerText = header.textContent?.trim() || "";
+        const isTopSection = headerText.includes("Top departing");
+
+        // Get the closest section container - this is better than using parentElement
+        // which can be too generic
+        const sectionContainer = header.closest("section") ||
+                               header.closest('[role="region"]') ||
+                               header.closest("div[jscontroller]");
+
+        if (sectionContainer) {
+          // Only gather flights that are descendants of this specific section
+          // This is more precise than the previous approach
+          const flightElements = Array.from(
+            sectionContainer.querySelectorAll("ul > li")
+          ).filter(el => {
+            // Additional validation to ensure we're getting actual flight elements
+            // and not other list items that might be present
+            return el.querySelector('span[aria-label$="US dollars"]') !== null;
+          });
+
+          flightSections.set(sectionContainer, {
+            isTopSection,
+            elements: flightElements
+          });
+
+          console.debug(
+            `Found ${flightElements.length} flights in ${isTopSection ? "top" : "other"} section`
+          );
+        }
+      });
+
+      // Process flights by section
+      flightSections.forEach(({isTopSection, elements}, _) => {
+        processFlightElements(elements, isTopSection);
+      });
 
       // Remove duplicate flights by creating a unique ID for each flight and filtering
       const flightIdMap = new Map<string, FlightData>();
