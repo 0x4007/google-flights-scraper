@@ -80,25 +80,43 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
         // Check if text is non-airline information
         function isNonAirlineText(text) {
-          return (
-            text.includes("Nonstop") ||
-            text.includes("stop") ||
-            text.includes("hr") ||
-            text.includes("min") ||
-            text.includes("Self transfer") ||
-            text.includes("Separate tickets") ||
-            text.includes("multiple airlines") ||
-            text.includes("Missed connections") ||
-            text.includes("Price unavailable") ||
-            text.includes("Departure") ||
-            text.includes("Unknown emissions") ||
-            /\d{1,2}:\d{2}/.test(text) || // Skip times
-            /^\d{1,2}/.test(text) ||     // Skip numbers
-            /[A-Z]{3}/.test(text) ||  // Airport codes often have 3 capital letters
-            text.length < 2 ||         // Skip very short text
-            text.includes("+") ||
-            text.includes("%")
-          );
+          if (!text) return true;
+
+          // Clean up the text first
+          const cleanText = text.trim();
+          if (cleanText.length < 2) return true;
+
+          // Check for date patterns (like "Tue, Apr 1")
+          if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}/.test(cleanText)) {
+            return true;
+          }
+
+          // Check for airport names and keywords
+          if (
+            cleanText.includes("International Airport") ||
+            cleanText.includes("Airport") ||
+            cleanText.includes("Terminal") ||
+            cleanText.includes("Nonstop") ||
+            cleanText.includes("stop") ||
+            cleanText.includes("hr") ||
+            cleanText.includes("min") ||
+            cleanText.includes("Self transfer") ||
+            cleanText.includes("Separate tickets") ||
+            cleanText.includes("multiple airlines") ||
+            cleanText.includes("Missed connections") ||
+            cleanText.includes("Price unavailable") ||
+            cleanText.includes("Departure") ||
+            cleanText.includes("Unknown emissions") ||
+            /\d{1,2}:\d{2}/.test(cleanText) || // Skip times
+            /^\d{1,2}/.test(cleanText) ||     // Skip numbers
+            /^[A-Z]{3}$/.test(cleanText) ||  // Airport codes often have 3 capital letters
+            cleanText.includes("+") ||
+            cleanText.includes("%")
+          ) {
+            return true;
+          }
+
+          return false;
         }
 
         // Add airline name to array avoiding duplicates
@@ -112,39 +130,52 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         function extractAirlineNames(flightElement) {
           const airlines = [];
 
-          // Method 1: Look for airline logos and text
-          const airlineElements = flightElement.querySelectorAll(
-            'img[alt*="Airlines"], img[alt*="Air"], ' +
-            'div > span:not([aria-label]), div > div > span:not([aria-label])'
-          );
+          // Most reliable method: Find airline logo images
+          const airlineImages = flightElement.querySelectorAll('img[alt*="Airlines"], img[alt*="Air"]');
 
-          for (const el of Array.from(airlineElements)) {
-            let text = "";
-
-            // Check for image alt text first
-            if (el.tagName === "IMG") {
-              text = el.getAttribute("alt") || "";
-            } else {
-              text = el.textContent?.trim() || "";
+          for (const img of Array.from(airlineImages)) {
+            const altText = img.getAttribute("alt") || "";
+            if (altText && !isNonAirlineText(altText)) {
+              addAirlineName(airlines, altText.trim());
             }
-
-            // Skip non-airline text
-            if (!text || isNonAirlineText(text)) continue;
-
-            // Clean and add the airline name
-            addAirlineName(airlines, text.trim());
           }
 
-          // Method 2: Check aria-labels for airline information
-          const elementsWithAriaLabel = flightElement.querySelectorAll('[aria-label*="Airlines"], [aria-label*="flight with"]');
+          // If we found airlines from logos, return them
+          if (airlines.length > 0) {
+            return airlines;
+          }
+
+          // Fallback method: Look for airline text in aria-labels
+          const elementsWithAriaLabel = flightElement.querySelectorAll('[aria-label*="Airlines"], [aria-label*="flight with"], [aria-label*="operated by"]');
 
           for (const el of Array.from(elementsWithAriaLabel)) {
             const ariaLabel = el.getAttribute("aria-label") || "";
 
-            // Extract airline from "flight with X Airlines" pattern
-            const airlineMatch = ariaLabel.match(/flight with ([^,.]+?)(?:\.|and|,|$)/i);
-            if (airlineMatch && airlineMatch[1]) {
-              addAirlineName(airlines, airlineMatch[1].trim());
+            // Common patterns in aria-labels
+            const patterns = [
+              /flight with ([^,.]+?)(?:\.|and|,|$)/i,
+              /operated by ([^,.]+?)(?:\.|and|,|$)/i,
+              /([^,.]+? Airlines)(?:\.|and|,|$)/i
+            ];
+
+            for (const pattern of patterns) {
+              const match = ariaLabel.match(pattern);
+              if (match && match[1] && !isNonAirlineText(match[1])) {
+                addAirlineName(airlines, match[1].trim());
+              }
+            }
+          }
+
+          // Last resort: Check for text nodes that might contain airline names
+          if (airlines.length === 0) {
+            const potentialAirlineTexts = Array.from(flightElement.querySelectorAll('div > span:not([aria-label])'))
+              .map(el => el.textContent?.trim())
+              .filter(text => text && text.length > 2 && !isNonAirlineText(text));
+
+            for (const text of potentialAirlineTexts) {
+              if (text && (text.includes("Airlines") || text.includes("Air "))) {
+                addAirlineName(airlines, text);
+              }
             }
           }
 
@@ -226,75 +257,90 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           let origin = null;
           let destination = null;
 
-          // Method 1: Try to find codes in aria-labels
+          // Known airline codes to filter out (to prevent confusion with airport codes)
+          const airlineCodes = ["JAL", "ANA", "KAL", "AAL", "DAL"];
+
+          // Method 1: Try to find codes in aria-labels (most reliable)
           const flightDetailsElements = Array.from(
             flightElement.querySelectorAll("[aria-label*='airport'], [aria-label*='leaves'], [aria-label*='arrives']")
           );
 
           for (const element of flightDetailsElements) {
             const ariaLabel = element.getAttribute("aria-label") || "";
-            const airportCodes = ariaLabel.match(/\b([A-Z]{3})\b/g);
+            // Look for specific patterns like "leaves ICN airport" or "arrives at NRT"
+            const leavePattern = /leaves\s+([A-Z]{3})\s+airport/i;
+            const arrivePattern = /arrives\s+at\s+([A-Z]{3})/i;
 
-            if (airportCodes && airportCodes.length >= 2) {
-              origin = airportCodes[0];
-              destination = airportCodes[1];
-              break;
+            const leaveMatch = ariaLabel.match(leavePattern);
+            const arriveMatch = ariaLabel.match(arrivePattern);
+
+            if (leaveMatch && leaveMatch[1]) {
+              origin = leaveMatch[1];
             }
-          }
 
-          // Method 2: Look for airport codes near duration
-          if (!origin || !destination) {
-            const durationElements = Array.from(
-              flightElement.querySelectorAll("div, span")
-            ).filter(el => /^\d+\s*hr/.test(el.textContent?.trim() || ""));
+            if (arriveMatch && arriveMatch[1]) {
+              destination = arriveMatch[1];
+            }
 
-            for (const durElement of durationElements) {
-              // Find nearby code elements
-              const parentContainer = durElement.parentElement;
-              if (!parentContainer) continue;
+            // If both found, we're done
+            if (origin && destination) break;
 
-              const possibleAirportElements = Array.from(
-                parentContainer.querySelectorAll("div, span")
-              ).filter(el => {
-                const text = el.textContent?.trim() || "";
-                return /^[A-Z]{3}$/.test(text);
-              });
+            // Fallback to general airport code extraction
+            if (!origin || !destination) {
+              const airportCodes = ariaLabel.match(/\b([A-Z]{3})\b/g);
 
-              if (possibleAirportElements.length >= 2) {
-                // Check for airline context
-                const airportElements = possibleAirportElements.filter(el => {
-                  const parent = el.parentElement;
-                  if (!parent) return true;
+              if (airportCodes && airportCodes.length >= 2) {
+                // Filter out airline codes
+                const filteredCodes = airportCodes.filter(code => !airlineCodes.includes(code));
 
-                  const parentText = parent.textContent || "";
-                  const isInAirlineContext =
-                    parentText.includes("Airlines") ||
-                    parentText.includes("operated by");
-
-                  return !isInAirlineContext;
-                });
-
-                if (airportElements.length >= 2) {
-                  origin = getText(airportElements[0]);
-                  destination = getText(airportElements[1]);
+                if (filteredCodes.length >= 2) {
+                  origin = filteredCodes[0];
+                  destination = filteredCodes[1];
                   break;
                 }
               }
             }
           }
 
-          // Method 3: Direct search for airport codes
+          // Method 2: Look for elements with single airport codes in sequence
           if (!origin || !destination) {
             const codeElements = Array.from(
               flightElement.querySelectorAll("div, span")
             ).filter(el => {
               const text = el.textContent?.trim() || "";
-              return /^[A-Z]{3}$/.test(text);
+              return /^[A-Z]{3}$/.test(text) && !airlineCodes.includes(text);
             });
 
+            // First and last airport codes in the sequence (to handle connections)
             if (codeElements.length >= 2) {
               origin = getText(codeElements[0]);
-              destination = getText(codeElements[1]);
+              destination = getText(codeElements[codeElements.length - 1]);
+            }
+          }
+
+          // Validate: ensure origin and destination are valid airport codes
+          // and they're not the same airport (which would be invalid)
+          if (origin && destination) {
+            // Make sure they're actually airport codes and not airline codes
+            if (airlineCodes.includes(origin)) origin = null;
+            if (airlineCodes.includes(destination)) destination = null;
+
+            // Ensure origin and destination are different
+            if (origin && destination && origin === destination) {
+              // This indicates a likely extraction error
+              // Use other airport codes if available
+              const allAirportCodes = Array.from(
+                flightElement.querySelectorAll("div, span")
+              )
+                .map(el => el.textContent?.trim())
+                .filter(text => text && /^[A-Z]{3}$/.test(text) && !airlineCodes.includes(text));
+
+              // If we have multiple distinct codes, use the first and last
+              const uniqueCodes = [...new Set(allAirportCodes)];
+              if (uniqueCodes.length >= 2) {
+                origin = uniqueCodes[0];
+                destination = uniqueCodes[uniqueCodes.length - 1];
+              }
             }
           }
 
@@ -455,17 +501,69 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
     console.info(`Found ${flights.length} flights in total`);
 
+    // Helper function to check if a string is an airport name or date
+    function isAirportOrDate(text: string): boolean {
+      if (!text) return true;
+
+      // Check for date patterns
+      if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}/.test(text)) {
+        return true;
+      }
+
+      // Check for airport names
+      if (
+        text.includes("International Airport") ||
+        text.includes("Airport") ||
+        text.includes("Terminal") ||
+        /^[A-Z]{3}$/.test(text) // Airport codes
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // Function to remove duplicate flights based on key properties
+    function deduplicateFlights(flights: FlightData[]): FlightData[] {
+      // Create a map to track seen flights based on key identifiers
+      const seen = new Map();
+      const uniqueFlights: FlightData[] = [];
+
+      for (const flight of flights) {
+        // Create a unique key based on important flight properties
+        const key = `${flight.price}-${flight.origin}-${flight.destination}-${flight.departureTime}-${flight.arrivalTime}-${flight.duration}`;
+
+        // If we haven't seen this flight before, add it to our result
+        if (!seen.has(key)) {
+          seen.set(key, true);
+          uniqueFlights.push(flight);
+        }
+      }
+
+      return uniqueFlights;
+    }
+
     // Post-process flight data to enhance and clean results
-    const processedFlights = flights.map((flight) => {
+    let processedFlights = flights.map((flight) => {
+      // Clean up airlines array to ensure it only contains actual airlines
+      const cleanedAirlines = Array.isArray(flight.airlines)
+        ? flight.airlines.filter(airline => airline && !isAirportOrDate(airline))
+        : [];
+
       // Generate formatted display strings for routes and timings
       return {
         ...flight,
-        formattedRoute: formatFlightRoute(flight),
+        airlines: cleanedAirlines,
+        formattedRoute: formatFlightRoute({...flight, airlines: cleanedAirlines}),
         formattedTimings: formatFlightTimings(flight),
         formattedPrice: `$${flight.price}`,
       };
     });
 
+    // Remove duplicate flights by comparing key properties
+    processedFlights = deduplicateFlights(processedFlights);
+
+    console.info(`Found ${processedFlights.length} unique flights after deduplication`);
     return processedFlights;
   } catch (error) {
     console.error(
