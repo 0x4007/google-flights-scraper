@@ -1,8 +1,9 @@
 name: Puppeteer Screenshot
 
 on:
+  # Run on every push to any branch
   push:
-    branches: [ main ]
+  # Run on pull requests to main
   pull_request:
     branches: [ main ]
   # Allow manual triggering
