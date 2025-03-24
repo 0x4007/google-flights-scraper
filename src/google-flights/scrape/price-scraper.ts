@@ -601,7 +601,45 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           fullName: string;
         };
       } {
-        // Look for airport codes in div elements
+        // First approach: Look for the dash separating airports in the flight summary
+        const airportText = Array.from(flightElement.querySelectorAll("span[aria-hidden='true']"))
+          .find(span => span.textContent === "–");
+
+        if (airportText) {
+          // Airport codes are typically nearby the dash
+          const container = airportText.closest("div")?.parentElement;
+          if (container) {
+            const airportDivs = Array.from(
+              container.querySelectorAll("div > div")
+            ).filter(div => /^[A-Z]{3}$/.test(div.textContent?.trim() || ""));
+
+            if (airportDivs.length >= 2) {
+              const origin = getText(airportDivs[0]);
+              const destination = getText(airportDivs[1]);
+
+              // Try to get full names from tooltips
+              const originTooltip = airportDivs[0].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
+              const destTooltip = airportDivs[1].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
+
+              const originDetails = origin && originTooltip?.textContent
+                ? { code: origin, fullName: originTooltip.textContent.trim() }
+                : undefined;
+
+              const destinationDetails = destination && destTooltip?.textContent
+                ? { code: destination, fullName: destTooltip.textContent.trim() }
+                : undefined;
+
+              return {
+                origin,
+                destination,
+                originDetails,
+                destinationDetails
+              };
+            }
+          }
+        }
+
+        // Second approach: Look for airport codes throughout the element
         const airportDivs = Array.from(
           flightElement.querySelectorAll("div > div"),
         ).filter((div) => /^[A-Z]{3}$/.test(div.textContent?.trim() || ""));
@@ -612,28 +650,43 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         let destinationDetails = undefined;
 
         if (airportDivs.length >= 2) {
-          origin = getText(airportDivs[0]);
-          destination = getText(airportDivs[1]);
+          // Find the first distinct pair of airport codes
+          let foundPair = false;
+          for (let i = 0; i < airportDivs.length - 1; i++) {
+            const code1 = getText(airportDivs[i]);
+            const code2 = getText(airportDivs[i + 1]);
 
-          // Try to extract airport full names
-          for (let i = 0; i < airportDivs.length; i++) {
-            const div = airportDivs[i];
-            const code = getText(div);
-            if (!code) continue;
+            if (code1 && code2 && code1 !== code2) {
+              origin = code1;
+              destination = code2;
+              foundPair = true;
 
-            // Try to find associated tooltip/popup with airport name
-            const tooltipEl = div.querySelector('span[jsname="bN97Pc"]') ||
-                             div.closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
+              // Try to extract airport full names
+              const tooltipEl1 = airportDivs[i].querySelector('span[jsname="bN97Pc"]') ||
+                               airportDivs[i].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
 
-            const fullName = tooltipEl?.textContent?.trim() || "";
+              const tooltipEl2 = airportDivs[i+1].querySelector('span[jsname="bN97Pc"]') ||
+                               airportDivs[i+1].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
 
-            if (code && fullName) {
-              if (i === 0) {
-                originDetails = { code, fullName };
-              } else if (i === 1) {
-                destinationDetails = { code, fullName };
+              const fullName1 = tooltipEl1?.textContent?.trim() || "";
+              const fullName2 = tooltipEl2?.textContent?.trim() || "";
+
+              if (code1 && fullName1) {
+                originDetails = { code: code1, fullName: fullName1 };
               }
+
+              if (code2 && fullName2) {
+                destinationDetails = { code: code2, fullName: fullName2 };
+              }
+
+              break;
             }
+          }
+
+          // If we didn't find a distinct pair, just use the first two
+          if (!foundPair) {
+            origin = getText(airportDivs[0]);
+            destination = getText(airportDivs[1]);
           }
         }
 
