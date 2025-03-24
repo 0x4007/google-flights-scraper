@@ -1,0 +1,16 @@
+# Node.js dependencies
+node_modules/
+
+# Local screenshots
+screenshot/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# OS specific files
+.DS_Store
+Thumbs.db

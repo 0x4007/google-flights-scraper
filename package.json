@@ -1,0 +1,18 @@
+{
+  "name": "puppeteer-on-actions",
+  "version": "1.0.0",
+  "description": "Minimal example of using Puppeteer on GitHub Actions",
+  "main": "index.js",
+  "scripts": {
+    "screenshot": "node take-screenshot.js"
+  },
+  "keywords": [
+    "puppeteer",
+    "github-actions"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^22.3.0"
+  }
+}
