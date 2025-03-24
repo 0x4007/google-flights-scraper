@@ -31,7 +31,7 @@ async function takeScreenshot(): Promise<void> {
     await page.setViewport({ width: 1280, height: 800 });
 
     console.log('Navigating to flights.google.com...');
-    await page.goto('https://flights.google.com', {
+    await page.goto('https://www.google.com/travel/flights?curr=USD', {
       waitUntil: 'networkidle2',
       timeout: 60000  // Increase timeout for slower CI environments
     });
