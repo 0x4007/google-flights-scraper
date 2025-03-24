@@ -1,6 +1,7 @@
 import { Page } from 'puppeteer';
 import { FlightSearchParameters } from '../types';
 import { whereFrom } from './select-locations/where-from';
+import { whereTo } from './select-locations/where-to';
 
 export async function navigateToFlights(page: Page, parameters: FlightSearchParameters): Promise<void> {
   console.log('Setting up viewport...');
@@ -17,7 +18,7 @@ export async function navigateToFlights(page: Page, parameters: FlightSearchPara
 
   console.log(`Setting origin location to: ${parameters.from}`);
   await whereFrom(page, parameters.from);
-
+  await whereTo(page, parameters.to);
   // Add a delay to ensure the screenshot captures the entered location
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
