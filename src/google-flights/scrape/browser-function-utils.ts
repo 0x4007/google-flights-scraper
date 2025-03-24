@@ -1,13 +1,41 @@
 import { Page } from "puppeteer";
+import { addAirlineNameFunction } from "./page-functions/add-airline-name";
+import { extractAirlineNamesFunction } from "./page-functions/extract-airline-names";
+import { extractAirportsFunction } from "./page-functions/extract-airports";
+import { extractBookingCautionFunction } from "./page-functions/extract-booking-caution";
+import { extractDurationFunction } from "./page-functions/extract-duration";
+import { extractFlightDetailsFunction } from "./page-functions/extract-flight-details";
+import { extractStopsFunction } from "./page-functions/extract-stops";
+import { extractTimesFunction } from "./page-functions/extract-times";
+import { findFlightContainersFunction } from "./page-functions/find-flight-containers";
+import { findFlightElementsFunction } from "./page-functions/find-flight-elements";
+import { getTextFunction } from "./page-functions/get-text";
+import { isNonAirlineTextFunction } from "./page-functions/is-non-airline-text";
 
 /**
  * Registers all page functions by combining them and injecting them into the page context.
  * This avoids having to redefine all functions within page.evaluate().
  */
 export async function registerPageFunctions(page: Page): Promise<void> {
-  // Import all function strings
+  // Import all function strings - order matters for dependencies
   const functionStrings: string[] = [
-    // We'll import and concatenate all function strings here
+    // Utility functions first
+    getTextFunction(),
+    isNonAirlineTextFunction(),
+    findFlightElementsFunction(),
+    addAirlineNameFunction(),
+
+    // Extraction functions
+    extractAirlineNamesFunction(),
+    extractBookingCautionFunction(),
+    extractTimesFunction(),
+    extractDurationFunction(),
+    extractStopsFunction(),
+    extractAirportsFunction(),
+    extractFlightDetailsFunction(),
+
+    // Main processing function
+    findFlightContainersFunction()
   ];
 
   // Inject these functions into the page context
