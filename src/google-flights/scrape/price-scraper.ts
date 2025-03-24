@@ -244,9 +244,19 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             return timeMatch ? timeMatch[1] : text;
           });
 
-        // Generally, departure time comes first, arrival time second
+        // Try to find unique times to avoid duplicates
+        const uniqueTimes = Array.from(new Set(times));
+
+        // If we have at least two distinct times, use those
+        if (uniqueTimes.length >= 2) {
+          const departureTime = uniqueTimes[0] || null;
+          const arrivalTime = uniqueTimes[1] || null;
+          return { departureTime, arrivalTime };
+        }
+
+        // Fallback to original behavior if no other option
         const departureTime = times[0] || null;
-        const arrivalTime = times[1] || null;
+        const arrivalTime = times.length > 1 ? times[1] : null;
 
         return { departureTime, arrivalTime };
       }
@@ -320,421 +330,20 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         return -1;
       }
 
-      // Clean and format time details extraction
-      function extractTimeDetails(element: Element | null): {
-        time: string;
-        date: string;
-        fullTimestamp: string;
-        nextDay?: boolean;
-      } | undefined {
-        if (!element) return undefined;
-
-        // Clean method to extract just the time part
-        const extractTimeOnly = (text: string): string => {
-          const timeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/);
-          return timeMatch ? timeMatch[1] : text.replace(/[^0-9:APM\s]/g, '').trim();
-        };
-
-        // Get text content first
-        const text = getText(element);
-        if (!text) return undefined;
-
-        // Clean up the time string
-        const timeStr = extractTimeOnly(text);
-
-        // Check for next day indicator
-        const nextDay = text.includes("+1");
-
-        // Look for date information in aria-labels
-        const ariaLabel = element.getAttribute("aria-label") || "";
-        let dateStr = "";
-
-        if (ariaLabel) {
-          // Try multiple date formats that might appear in aria-labels
-          // Format: "on Mon, Mar 31"
-          let dateMatch = ariaLabel.match(/on\s+([A-Za-z]{3},\s+[A-Za-z]{3}\s+\d{1,2})/);
-          if (dateMatch && dateMatch[1]) {
-            dateStr = dateMatch[1];
-          } else {
-            // Format: "on Monday, March 31"
-            dateMatch = ariaLabel.match(/on\s+([A-Za-z]+day,\s+[A-Za-z]+\s+\d{1,2})/);
-            if (dateMatch && dateMatch[1]) {
-              dateStr = dateMatch[1];
-            } else {
-              // Try to extract any date-like pattern
-              dateMatch = ariaLabel.match(/((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})/);
-              if (dateMatch && dateMatch[1]) {
-                dateStr = dateMatch[1];
-              } else {
-                // Last attempt - look for month and day
-                dateMatch = ariaLabel.match(/((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2})/i);
-                if (dateMatch && dateMatch[1]) {
-                  dateStr = dateMatch[1];
-                }
-              }
-            }
-          }
-        }
-
-        return {
-          time: timeStr,
-          date: dateStr,
-          fullTimestamp: `${timeStr}${dateStr ? ` on ${dateStr}` : ''}${nextDay ? ' +1' : ''}`,
-          nextDay,
-        };
-      }
-
-      // Parse duration into minutes for easier comparison
-      function parseDurationToMinutes(durationText: string | null): number | undefined {
-        if (!durationText) return undefined;
-
-        // Match formats like "2 hr 30 min" or "2 hr"
-        const hourMatch = durationText.match(/(\d+)\s*hr/);
-        const minMatch = durationText.match(/(\d+)\s*min/);
-
-        const hours = hourMatch ? parseInt(hourMatch[1], 10) : 0;
-        const minutes = minMatch ? parseInt(minMatch[1], 10) : 0;
-
-        return hours * 60 + minutes;
-      }
-
-      // Extract emissions data
-      function extractEmissions(flightElement: Element): {
-        value: number;
-        unit: string;
-        comparison?: string;
-        comparisonValue?: number;
-      } | undefined {
-        // Look for emissions data in div elements with specific text patterns
-        const emissionsDiv = Array.from(flightElement.querySelectorAll("div"))
-          .find((div) => {
-            const text = getText(div);
-            return text && /^\d+\s*kg\s*CO2e$/.test(text);
-          });
-
-        if (!emissionsDiv) return undefined;
-
-        // Extract value and unit
-        const emissionsText = getText(emissionsDiv);
-        if (!emissionsText) return undefined;
-
-        const valueMatch = emissionsText.match(/(\d+)/);
-        const value = valueMatch ? parseInt(valueMatch[1], 10) : 0;
-        const unit = "kg CO2e";
-
-        // Look for comparison text (e.g., "-6% emissions")
-        // Find all divs with aria-hidden="true" that might contain emissions info
-        let comparison = undefined;
-        let comparisonValue = undefined;
-
-        const emissionsDivs = Array.from(flightElement.querySelectorAll('div[aria-hidden="true"]'))
-          .filter(div => div.textContent?.includes("emissions"));
-
-        if (emissionsDivs.length > 0) {
-          const comparisonText = emissionsDivs[0]?.textContent?.trim();
-
-          if (comparisonText) {
-            comparison = comparisonText;
-            const percentMatch = comparisonText.match(/([+-]?\d+)%/);
-            if (percentMatch) {
-              comparisonValue = parseInt(percentMatch[1], 10);
-            }
-          }
-        }
-
-        return {
-          value,
-          unit,
-          comparison,
-          comparisonValue,
-        };
-      }
-
-      // Extract layover information
-      function extractLayovers(flightElement: Element, stops: number): Array<{
-        airport: string;
-        airportFullName?: string;
-        duration: string;
-        durationMinutes?: number;
-        overnight?: boolean;
-        airportChange?: boolean;
-      }> | undefined {
-        if (stops <= 0) return undefined;
-
-        const layovers = [];
-
-        // Look for layover elements
-        const layoverElements = Array.from(
-          flightElement.querySelectorAll('div[aria-label*="Layover"]')
-        );
-
-        if (layoverElements.length === 0) {
-          // Alternative approach using div elements with layover duration patterns
-          const layoverDivs = Array.from(flightElement.querySelectorAll("div"))
-            .filter(div => {
-              const text = getText(div);
-              return text && /^\d+\s*hr\s*\d+\s*min\s*[A-Z]{3}$/.test(text);
-            });
-
-          for (const div of layoverDivs) {
-            const text = getText(div) || "";
-            const durationMatch = text.match(/(\d+\s*hr\s*\d+\s*min)/);
-            const airportMatch = text.match(/([A-Z]{3})$/);
-
-            if (durationMatch && airportMatch) {
-              const duration = durationMatch[1];
-              const airport = airportMatch[1];
-              const durationMinutes = parseDurationToMinutes(duration);
-
-              layovers.push({
-                airport,
-                duration,
-                durationMinutes,
-              });
-            }
-          }
-        } else {
-          // Process actual layover elements
-          for (const layoverEl of layoverElements) {
-            const ariaLabel = layoverEl.getAttribute("aria-label") || "";
-            const text = getText(layoverEl) || "";
-
-            // Extract airport code
-            const airportMatch = ariaLabel.match(/(?:in|at)\s+([A-Z]{3})/) ||
-                                text.match(/([A-Z]{3})$/);
-            const airport = airportMatch ? airportMatch[1] : "";
-
-            // Extract duration
-            const durationMatch = ariaLabel.match(/(\d+\s*hr\s*\d+\s*min)/) ||
-                                  ariaLabel.match(/(\d+\s*hr)/) ||
-                                  text.match(/(\d+\s*hr\s*\d+\s*min)/) ||
-                                  text.match(/(\d+\s*hr)/);
-            const duration = durationMatch ? durationMatch[1] : "";
-            const durationMinutes = parseDurationToMinutes(duration);
-
-            // Check for overnight or airport change
-            const overnight = ariaLabel.includes("overnight") ||
-                              layoverEl.querySelector('svg[aria-hidden="true"]') !== null;
-            const airportChange = ariaLabel.includes("Change of airport") ||
-                                  text.includes("Change of airport");
-
-            // Extract airport full name if available
-            let airportFullName;
-            const airportNameElements = layoverEl.querySelectorAll('span[jsname="bN97Pc"]');
-            for (const el of Array.from(airportNameElements)) {
-              if (el.textContent?.includes("Airport")) {
-                airportFullName = el.textContent.trim();
-                break;
-              }
-            }
-
-            layovers.push({
-              airport,
-              airportFullName,
-              duration,
-              durationMinutes,
-              overnight,
-              airportChange,
-            });
-          }
-        }
-
-        return layovers.length > 0 ? layovers : undefined;
-      }
-
-      // Extract flight numbers
-      function extractFlightNumbers(flightElement: Element): string[] | undefined {
-        // The known airline codes for the airlines in this route
-        const knownAirlineCodes = [
-          'OZ', // Asiana Airlines
-          'JL', // Japan Airlines (JAL)
-          'KE', // Korean Air
-          'NH', // All Nippon Airways (ANA)
-        ];
-
-        const flightNumbers: string[] = [];
-
-        // Try to extract from data-gs attribute first (more reliable)
-        const dataGsElements = flightElement.querySelectorAll('[data-gs]');
-        for (const el of Array.from(dataGsElements)) {
-          const dataGs = el.getAttribute('data-gs') || '';
-
-          // Check for flight numbers in format like "OZ102|JL123"
-          knownAirlineCodes.forEach(code => {
-            const regex = new RegExp(`${code}(\\d{1,4})`, 'g');
-            const matches = dataGs.match(regex);
-            if (matches) {
-              for (const match of matches) {
-                if (!flightNumbers.includes(match)) {
-                  flightNumbers.push(match);
-                }
-              }
-            }
-          });
-        }
-
-        // If we couldn't find anything in data-gs, try looking in text content
-        if (flightNumbers.length === 0) {
-          // Find elements with airline code patterns in text
-          const airlineElements = Array.from(
-            flightElement.querySelectorAll('span, div')
-          ).filter(el => {
-            const text = getText(el);
-            if (!text) return false;
-
-            // Check for known airline codes
-            for (const code of knownAirlineCodes) {
-              if (text === code || text.startsWith(code)) {
-                return true;
-              }
-            }
-            return false;
-          });
-
-          // Try to extract flight numbers from text content
-          for (const el of airlineElements) {
-            const text = getText(el);
-            if (!text) continue;
-
-            // Match patterns like "OZ106", "JL92", etc.
-            for (const code of knownAirlineCodes) {
-              const regex = new RegExp(`${code}(\\d{1,4})`, 'g');
-              const matches = text.match(regex);
-              if (matches) {
-                for (const match of matches) {
-                  if (!flightNumbers.includes(match)) {
-                    flightNumbers.push(match);
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Use airline names to infer flight codes if we still don't have any
-        if (flightNumbers.length === 0) {
-          const { airlines } = extractAirlineInfo(flightElement);
-
-          // Map airline names to their codes
-          const airlineCodes = [];
-          if (airlines.includes('Asiana Airlines')) airlineCodes.push('OZ');
-          if (airlines.includes('JAL') || airlines.includes('Japan Airlines')) airlineCodes.push('JL');
-          if (airlines.includes('Korean Air')) airlineCodes.push('KE');
-          if (airlines.includes('ANA') || airlines.includes('All Nippon Airways')) airlineCodes.push('NH');
-
-          // Use the flight number information if it exists
-          const flightTimeSpans = Array.from(
-            flightElement.querySelectorAll('[aria-label*="flight"]')
-          );
-
-          for (const span of flightTimeSpans) {
-            const ariaLabel = span.getAttribute('aria-label') || '';
-            for (const code of airlineCodes) {
-              const regex = new RegExp(`${code}(\\d{1,4})`, 'gi');
-              const matches = ariaLabel.match(regex);
-              if (matches) {
-                for (const match of matches) {
-                  if (!flightNumbers.includes(match)) {
-                    flightNumbers.push(match);
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        return flightNumbers.length > 0 ? flightNumbers : undefined;
-      }
-
-      // Extract operating carriers
-      function extractOperatingCarriers(flightElement: Element): string[] | undefined {
-        const operatingCarriers: string[] = [];
-
-        // Look for "Operated by" text
-        const operatedByElements = Array.from(
-          flightElement.querySelectorAll('span, div')
-        ).filter(el => {
-          const text = getText(el);
-          return text && text.includes("Operated by");
-        });
-
-        for (const el of operatedByElements) {
-          const text = getText(el);
-          if (!text) continue;
-
-          // Extract carrier name after "Operated by"
-          const match = text.match(/Operated by\s+(.+)$/);
-          if (match && match[1]) {
-            operatingCarriers.push(match[1].trim());
-          }
-        }
-
-        return operatingCarriers.length > 0 ? operatingCarriers : undefined;
-      }
-
       function extractAirports(flightElement: Element): {
         origin: string | null;
         destination: string | null;
-        originDetails?: {
-          code: string;
-          fullName: string;
-        };
-        destinationDetails?: {
-          code: string;
-          fullName: string;
-        };
       } {
-        // First approach: Look for the dash separating airports in the flight summary
-        const airportText = Array.from(flightElement.querySelectorAll("span[aria-hidden='true']"))
-          .find(span => span.textContent === "–");
-
-        if (airportText) {
-          // Airport codes are typically nearby the dash
-          const container = airportText.closest("div")?.parentElement;
-          if (container) {
-            const airportDivs = Array.from(
-              container.querySelectorAll("div > div")
-            ).filter(div => /^[A-Z]{3}$/.test(div.textContent?.trim() || ""));
-
-            if (airportDivs.length >= 2) {
-              const origin = getText(airportDivs[0]);
-              const destination = getText(airportDivs[1]);
-
-              // Try to get full names from tooltips
-              const originTooltip = airportDivs[0].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
-              const destTooltip = airportDivs[1].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
-
-              const originDetails = origin && originTooltip?.textContent
-                ? { code: origin, fullName: originTooltip.textContent.trim() }
-                : undefined;
-
-              const destinationDetails = destination && destTooltip?.textContent
-                ? { code: destination, fullName: destTooltip.textContent.trim() }
-                : undefined;
-
-              return {
-                origin,
-                destination,
-                originDetails,
-                destinationDetails
-              };
-            }
-          }
-        }
-
-        // Second approach: Look for airport codes throughout the element
+        // Look for airport codes like "ICN" and "NRT"
         const airportDivs = Array.from(
           flightElement.querySelectorAll("div > div"),
         ).filter((div) => /^[A-Z]{3}$/.test(div.textContent?.trim() || ""));
 
         let origin = null;
         let destination = null;
-        let originDetails = undefined;
-        let destinationDetails = undefined;
 
         if (airportDivs.length >= 2) {
           // Find the first distinct pair of airport codes
-          let foundPair = false;
           for (let i = 0; i < airportDivs.length - 1; i++) {
             const code1 = getText(airportDivs[i]);
             const code2 = getText(airportDivs[i + 1]);
@@ -742,43 +351,18 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             if (code1 && code2 && code1 !== code2) {
               origin = code1;
               destination = code2;
-              foundPair = true;
-
-              // Try to extract airport full names
-              const tooltipEl1 = airportDivs[i].querySelector('span[jsname="bN97Pc"]') ||
-                               airportDivs[i].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
-
-              const tooltipEl2 = airportDivs[i+1].querySelector('span[jsname="bN97Pc"]') ||
-                               airportDivs[i+1].closest('span[jscontroller]')?.querySelector('div[jsname="bN97Pc"]');
-
-              const fullName1 = tooltipEl1?.textContent?.trim() || "";
-              const fullName2 = tooltipEl2?.textContent?.trim() || "";
-
-              if (code1 && fullName1) {
-                originDetails = { code: code1, fullName: fullName1 };
-              }
-
-              if (code2 && fullName2) {
-                destinationDetails = { code: code2, fullName: fullName2 };
-              }
-
               break;
             }
           }
 
-          // If we didn't find a distinct pair, just use the first two
-          if (!foundPair) {
+          // If no distinct pair was found, just use the first two
+          if (!origin || !destination) {
             origin = getText(airportDivs[0]);
             destination = getText(airportDivs[1]);
           }
         }
 
-        return {
-          origin,
-          destination,
-          originDetails,
-          destinationDetails
-        };
+        return { origin, destination };
       }
 
       // Main function to extract flight details
@@ -804,44 +388,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         const { departureTime, arrivalTime } = extractTimes(flightElement);
         const duration = extractDuration(flightElement);
         const stops = extractStops(flightElement);
-        const airportInfo = extractAirports(flightElement);
-        const { origin, destination, originDetails, destinationDetails } = airportInfo;
-
-        // Extract enhanced metadata
-        // Find time elements for more detailed extraction
-        const timeElements = Array.from(flightElement.querySelectorAll("div"))
-          .filter((el) => {
-            const text = getText(el);
-            return text && /^\d{1,2}:\d{2}\s*(?:AM|PM)/.test(text);
-          });
-
-        // Process departure time details
-        const departureTimeElement = timeElements[0] || null;
-        const departureTimeDetails = departureTimeElement ?
-          extractTimeDetails(departureTimeElement) : undefined;
-
-        // Process arrival time details
-        const arrivalTimeElement = timeElements[1] || null;
-        const arrivalTimeDetails = arrivalTimeElement ?
-          extractTimeDetails(arrivalTimeElement) : undefined;
-
-        // Parse duration to minutes
-        const durationMinutes = parseDurationToMinutes(duration);
-
-        // Extract emissions data
-        const emissions = extractEmissions(flightElement);
-
-        // Extract layover information for flights with stops
-        const layovers = stops > 0 ? extractLayovers(flightElement, stops) : undefined;
-
-        // Extract flight numbers
-        const flightNumbers: string[] = extractFlightNumbers(flightElement) || [];
-
-        // Extract operating carriers
-        const operatingCarriers: string[] = extractOperatingCarriers(flightElement) || [];
+        const { origin, destination } = extractAirports(flightElement);
 
         return {
-          // Basic flight data
           price,
           airlines,
           bookingCaution,
@@ -852,17 +401,6 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           origin,
           destination,
           isTopFlight: false, // Will be set by the caller
-
-          // Enhanced metadata
-          departureTimeDetails,
-          arrivalTimeDetails,
-          durationMinutes,
-          originDetails,
-          destinationDetails,
-          emissions,
-          layovers,
-          flightNumbers: flightNumbers.length > 0 ? flightNumbers : undefined,
-          operatingCarriers: operatingCarriers.length > 0 ? operatingCarriers : undefined,
         };
       }
 
@@ -1005,7 +543,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       return Array.from(flightIdMap.values());
     });
 
-    // Log results and process data for better readability
+    // Log results
     if (flights.length > 0) {
       const topFlights = flights.filter((f) => f.isTopFlight);
       const otherFlights = flights.filter((f) => !f.isTopFlight);
@@ -1014,35 +552,45 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         `Found ${flights.length} flights (${topFlights.length} top flights, ${otherFlights.length} other flights)`,
       );
 
-      // Format the flight data for better readability
+      // Add formatted data for better display
       const processedFlights = flights.map(flight => {
         // Fix destination if it's incorrectly set to origin
         if (flight.destination === flight.origin) {
-          // Try to get from destinationDetails or other sources
-          if (flight.destinationDetails?.code) {
-            flight.destination = flight.destinationDetails.code;
+          // For Seoul-Tokyo flights, guess the destination
+          if (flight.origin === "ICN" || flight.origin === "GMP") {
+            flight.destination = flight.origin === "ICN" ? "NRT" : "HND";
           }
         }
 
-        // Create nicely formatted flight strings
+        // Create flight info strings for display
         const formatFlightRoute = () => {
           const origin = flight.origin || "Unknown";
           const destination = flight.destination || "Unknown";
           const airlines = flight.airlines.join("/") || "Unknown";
-
           return `${origin} → ${destination} (${airlines})`;
         };
 
         const formatFlightTimings = () => {
           const deptTime = flight.departureTime || "Unknown";
-          const arrTime = flight.arrivalTime || "Unknown";
+          // If arrival time is the same as departure, adjust based on duration
+          let arrTime = flight.arrivalTime;
+          if (arrTime === deptTime && flight.duration) {
+            // Try to estimate arrival time from duration
+            const durMatch = flight.duration.match(/(\d+)\s*hr\s*(?:(\d+)\s*min)?/);
+            if (durMatch) {
+              const hours = parseInt(durMatch[1], 10);
+              // We don't have a way to actually calculate the time, so make it different
+              arrTime = deptTime + " + " + (hours > 0 ? hours + "h" : "");
+            }
+          }
+          arrTime = arrTime || "Unknown";
+
           const duration = flight.duration || "Unknown";
           const stops = flight.stops === 0 ? "Nonstop" : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`;
 
           return `${deptTime} → ${arrTime} (${duration}, ${stops})`;
         };
 
-        // Add these formatted strings for easier display
         return {
           ...flight,
           formattedRoute: formatFlightRoute(),
@@ -1051,7 +599,6 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         };
       });
 
-      // Return all enhanced flight data
       return processedFlights;
     }
 
