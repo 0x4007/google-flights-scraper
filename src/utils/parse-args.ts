@@ -14,12 +14,16 @@ export function parseArgs(args: string[]): FlightSearchParameters {
       }
 
       const value = args[i + 1];
+      // Skip empty strings or args starting with --
       if (!value || value.startsWith('--')) {
-        throw new Error(`Missing value for argument: ${arg}`);
+        continue;
       }
 
-      // Remove the '--' prefix and store the key-value pair
-      params.set(arg.slice(2), value);
+      // Remove the '--' prefix and store the key-value pair if value is not empty
+      const trimmedValue = value.trim();
+      if (trimmedValue) {
+        params.set(arg.slice(2), trimmedValue);
+      }
       i++; // Skip the next argument since we used it as a value
     }
   }
