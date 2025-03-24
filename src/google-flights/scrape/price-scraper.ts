@@ -320,7 +320,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         return -1;
       }
 
-      // Parse time details from aria-label
+      // Clean and format time details extraction
       function extractTimeDetails(element: Element | null): {
         time: string;
         date: string;
@@ -329,41 +329,38 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       } | undefined {
         if (!element) return undefined;
 
-        // Get aria-label which contains full timestamp info
-        const ariaLabel = element.getAttribute("aria-label") || "";
-        if (!ariaLabel) {
-          // Fallback to text content if aria-label is not available
-          const text = getText(element);
-          if (!text) return undefined;
+        // Clean method to extract just the time part
+        const extractTimeOnly = (text: string): string => {
+          const timeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/);
+          return timeMatch ? timeMatch[1] : text.replace(/[^0-9:APM\s]/g, '').trim();
+        };
 
-          // Check for +1 indicator for next day
-          const nextDay = text.includes("+1");
-          // Basic extraction from text content
-          return {
-            time: text.replace("+1", "").trim(),
-            date: "",
-            fullTimestamp: text,
-            nextDay: nextDay,
-          };
-        }
+        // Get text content first
+        const text = getText(element);
+        if (!text) return undefined;
 
-        // Parse time string (e.g., "6:30 PM")
-        const timeMatch = ariaLabel.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/);
-        const time = timeMatch ? timeMatch[1] : "";
-
-        // Parse date string (e.g., "Mon, Mar 31")
-        const dateMatch = ariaLabel.match(/(on\s+)([^,]+,\s+[^,]+)/);
-        const date = dateMatch ? dateMatch[2] : "";
+        // Clean up the time string
+        const timeStr = extractTimeOnly(text);
 
         // Check for next day indicator
-        const nextDay = ariaLabel.includes("+1") ||
-                        element.textContent?.includes("+1") ||
-                        false;
+        const nextDay = text.includes("+1");
+
+        // Look for date information in aria-labels
+        const ariaLabel = element.getAttribute("aria-label") || "";
+        let dateStr = "";
+
+        if (ariaLabel) {
+          // Try to find date in format like "on Mon, Mar 31"
+          const dateMatch = ariaLabel.match(/on\s+([A-Za-z]{3},\s+[A-Za-z]{3}\s+\d{1,2})/);
+          if (dateMatch && dateMatch[1]) {
+            dateStr = dateMatch[1];
+          }
+        }
 
         return {
-          time,
-          date,
-          fullTimestamp: ariaLabel,
+          time: timeStr,
+          date: dateStr,
+          fullTimestamp: `${timeStr}${dateStr ? ` on ${dateStr}` : ''}${nextDay ? ' +1' : ''}`,
           nextDay,
         };
       }
@@ -528,33 +525,100 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
       // Extract flight numbers
       function extractFlightNumbers(flightElement: Element): string[] | undefined {
+        // The known airline codes for the airlines in this route
+        const knownAirlineCodes = [
+          'OZ', // Asiana Airlines
+          'JL', // Japan Airlines (JAL)
+          'KE', // Korean Air
+          'NH', // All Nippon Airways (ANA)
+        ];
+
         const flightNumbers: string[] = [];
 
-        // Look for elements with flight number patterns (e.g., "OZ106", "JL92")
-        const possibleFlightNumberElements = Array.from(
-          flightElement.querySelectorAll('span, div')
-        ).filter(el => {
-          const text = getText(el);
-          // Match patterns like "OZ106", "JL92", etc.
-          return text && /^[A-Z]{2}\d{1,4}$/.test(text);
-        });
-
-        for (const el of possibleFlightNumberElements) {
-          const flightNumber = getText(el);
-          if (flightNumber && !flightNumbers.includes(flightNumber)) {
-            flightNumbers.push(flightNumber);
-          }
-        }
-
-        // Also try data-gs attribute which sometimes contains flight numbers
+        // Try to extract from data-gs attribute first (more reliable)
         const dataGsElements = flightElement.querySelectorAll('[data-gs]');
         for (const el of Array.from(dataGsElements)) {
           const dataGs = el.getAttribute('data-gs') || '';
-          const flightNumberMatch = dataGs.match(/([A-Z]{2}\d{1,4})/g);
-          if (flightNumberMatch) {
-            for (const num of flightNumberMatch) {
-              if (!flightNumbers.includes(num)) {
-                flightNumbers.push(num);
+
+          // Check for flight numbers in format like "OZ102|JL123"
+          knownAirlineCodes.forEach(code => {
+            const regex = new RegExp(`${code}(\\d{1,4})`, 'g');
+            const matches = dataGs.match(regex);
+            if (matches) {
+              for (const match of matches) {
+                if (!flightNumbers.includes(match)) {
+                  flightNumbers.push(match);
+                }
+              }
+            }
+          });
+        }
+
+        // If we couldn't find anything in data-gs, try looking in text content
+        if (flightNumbers.length === 0) {
+          // Find elements with airline code patterns in text
+          const airlineElements = Array.from(
+            flightElement.querySelectorAll('span, div')
+          ).filter(el => {
+            const text = getText(el);
+            if (!text) return false;
+
+            // Check for known airline codes
+            for (const code of knownAirlineCodes) {
+              if (text === code || text.startsWith(code)) {
+                return true;
+              }
+            }
+            return false;
+          });
+
+          // Try to extract flight numbers from text content
+          for (const el of airlineElements) {
+            const text = getText(el);
+            if (!text) continue;
+
+            // Match patterns like "OZ106", "JL92", etc.
+            for (const code of knownAirlineCodes) {
+              const regex = new RegExp(`${code}(\\d{1,4})`, 'g');
+              const matches = text.match(regex);
+              if (matches) {
+                for (const match of matches) {
+                  if (!flightNumbers.includes(match)) {
+                    flightNumbers.push(match);
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Use airline names to infer flight codes if we still don't have any
+        if (flightNumbers.length === 0) {
+          const { airlines } = extractAirlineInfo(flightElement);
+
+          // Map airline names to their codes
+          const airlineCodes = [];
+          if (airlines.includes('Asiana Airlines')) airlineCodes.push('OZ');
+          if (airlines.includes('JAL') || airlines.includes('Japan Airlines')) airlineCodes.push('JL');
+          if (airlines.includes('Korean Air')) airlineCodes.push('KE');
+          if (airlines.includes('ANA') || airlines.includes('All Nippon Airways')) airlineCodes.push('NH');
+
+          // Use the flight number information if it exists
+          const flightTimeSpans = Array.from(
+            flightElement.querySelectorAll('[aria-label*="flight"]')
+          );
+
+          for (const span of flightTimeSpans) {
+            const ariaLabel = span.getAttribute('aria-label') || '';
+            for (const code of airlineCodes) {
+              const regex = new RegExp(`${code}(\\d{1,4})`, 'gi');
+              const matches = ariaLabel.match(regex);
+              if (matches) {
+                for (const match of matches) {
+                  if (!flightNumbers.includes(match)) {
+                    flightNumbers.push(match);
+                  }
+                }
               }
             }
           }
