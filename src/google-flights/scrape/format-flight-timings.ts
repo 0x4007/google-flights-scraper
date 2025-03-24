@@ -1,28 +1,52 @@
 import { FlightData } from "../../types";
 
-// Format flight timing information
-
+/**
+ * Format flight timing information in a clean, consistent way
+ * Handles missing or incorrect data gracefully
+ */
 export function formatFlightTimings(flight: FlightData): string {
-  const deptTime = flight.departureTime || "Unknown";
-  // If arrival time is the same as departure, adjust based on duration
+  // Use default values for missing data
+  const deptTime = flight.departureTime || "---";
+
+  // Handle arrival time with special cases
   let arrTime = flight.arrivalTime;
+
+  // Case 1: Missing arrival time
+  if (!arrTime) {
+    arrTime = "---";
+  }
+
+  // Case 2: Arrival time incorrectly matches departure time
   if (arrTime === deptTime && flight.duration) {
-    // Try to estimate arrival time from duration
+    // Try to estimate arrival time offset based on duration
     const durMatch = flight.duration.match(
       /(\d+)\s*hr\s*(?:(\d+)\s*min)?/
     );
     if (durMatch) {
       const hours = parseInt(durMatch[1], 10);
-      // We don't have a way to actually calculate the time, so make it different
-      arrTime = deptTime + " + " + (hours > 0 ? hours + "h" : "");
+      const minutes = durMatch[2] ? parseInt(durMatch[2], 10) : 0;
+
+      // Format as departure + offset to indicate it's a calculated value
+      if (hours > 0 || minutes > 0) {
+        arrTime = `${deptTime} + ${hours > 0 ? hours + "h" : ""}${minutes > 0 ? minutes + "m" : ""}`;
+      }
     }
   }
-  arrTime = arrTime || "Unknown";
 
-  const duration = flight.duration || "Unknown";
-  const stops = flight.stops === 0
-    ? "Nonstop"
-    : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`;
+  // Format duration and stops information
+  const duration = flight.duration || "Unknown duration";
 
-  return `${deptTime} → ${arrTime} (${duration}, ${stops})`;
+  // Properly handle different stop scenarios
+  let stopsText = "Unknown stops";
+  if (flight.stops !== undefined && flight.stops !== null) {
+    if (flight.stops === 0) {
+      stopsText = "Nonstop";
+    } else if (flight.stops === -1) {
+      stopsText = "Unknown stops";
+    } else {
+      stopsText = `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`;
+    }
+  }
+
+  return `${deptTime} → ${arrTime} (${duration}, ${stopsText})`;
 }
