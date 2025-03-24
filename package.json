@@ -4,13 +4,16 @@
   "description": "Minimal example of using Puppeteer on GitHub Actions with Bun & TypeScript",
   "main": "src/index.ts",
   "scripts": {
+    "postinstall": "npx puppeteer browsers install chrome",
+    "start": "bun run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01",
+    "dev": "bun run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --debug",
     "screenshot": "bun run src/index.ts",
     "format": "run-s format:*",
     "format:lint": "eslint --fix .",
     "format:prettier": "prettier --write .",
     "format:cspell": "cspell **/*",
-    "rename-to-kebab": "bun scripts/rename-to-kebab-case.ts",
-    "rename-to-kebab:dry-run": "bun scripts/rename-to-kebab-case.ts --dry-run --verbose"
+    "utils:rename-to-kebab": "bun scripts/rename-to-kebab-case.ts",
+    "utils:rename-to-kebab:dry-run": "bun scripts/rename-to-kebab-case.ts --dry-run --verbose"
   },
   "keywords": [
     "puppeteer",
