@@ -1,11 +1,11 @@
 import { Page } from "puppeteer";
 import { FlightSearchParameters } from "../types";
+import { applyAllianceFilters } from "./filter/alliance-filter-handler";
+import { clickSearchButton } from "./search/click-search-button/click-search-button";
 import { selectDepartureDate } from "./search/select-date/departure-date";
 import { selectReturnDate } from "./search/select-date/return-date";
 import { whereFrom } from "./search/select-locations/where-from";
 import { whereTo } from "./search/select-locations/where-to";
-import { clickSearchButton } from "./search/click-search-button/click-search-button";
-import { applyAllianceFilters } from "./filter/alliance-filter-handler";
 
 export async function navigateToFlights(
   page: Page,
@@ -15,7 +15,7 @@ export async function navigateToFlights(
   await page.setViewport({ width: 1280, height: 800 });
 
   console.log("Navigating to flights.google.com...");
-  await page.goto("https://flights.google.com", {
+  await page.goto("https://flights.google.com?curr=USD", {
     waitUntil: "networkidle2",
     timeout: 60000, // Increase timeout for slower CI environments
   });
