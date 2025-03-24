@@ -25,7 +25,11 @@ export function parseArgs(args: string[]): FlightSearchParameters {
       // Remove the '--' prefix and store the key-value pair if value is not empty
       const trimmedValue = value.trim();
       if (trimmedValue && trimmedValue !== '""') {
-        params.set(arg.slice(2), trimmedValue);
+        // Map old parameter names to new ones
+        const key = arg.slice(2) === "departure" ? "departureDate" :
+                   arg.slice(2) === "return" ? "returnDate" :
+                   arg.slice(2);
+        params.set(key, trimmedValue);
       }
       i++; // Skip the next argument since we used it as a value
     }
@@ -39,24 +43,34 @@ export function parseArgs(args: string[]): FlightSearchParameters {
     params.set("to", DEFAULT_TO);
   }
 
+  // Map old parameter name to new one if necessary
+  if (params.has("departure")) {
+    params.set("departureDate", params.get("departure")!);
+    params.delete("departure");
+  }
+  if (params.has("return")) {
+    params.set("returnDate", params.get("return")!);
+    params.delete("return");
+  }
+
   // Validate departure date (always required)
-  if (!params.has("departure")) {
-    throw new Error("Missing required parameter: departure");
+  if (!params.has("departureDate")) {
+    throw new Error("Missing required parameter: --departure");
   }
 
   // Build and validate dates
-  const departure = new Date(params.get("departure")!);
-  if (isNaN(departure.getTime())) {
+  const departureDate = new Date(params.get("departureDate")!);
+  if (isNaN(departureDate.getTime())) {
     throw new Error("Invalid departure date format. Use YYYY-MM-DD");
   }
 
   let returnDate: Date | undefined;
-  if (params.has("return")) {
-    returnDate = new Date(params.get("return")!);
+  if (params.has("returnDate")) {
+    returnDate = new Date(params.get("returnDate")!);
     if (isNaN(returnDate.getTime())) {
       throw new Error("Invalid return date format. Use YYYY-MM-DD");
     }
-    if (returnDate < departure) {
+    if (returnDate < departureDate) {
       throw new Error("Return date cannot be earlier than departure date");
     }
   }
@@ -64,8 +78,8 @@ export function parseArgs(args: string[]): FlightSearchParameters {
   return {
     from: params.get("from")!,
     to: params.get("to")!,
-    departure: params.get("departure")!,
-    return: params.get("return"),
+    departureDate: params.get("departureDate")!,
+    returnDate: params.get("returnDate"),
     includeBudget: isBudgetIncluded,
   };
 }

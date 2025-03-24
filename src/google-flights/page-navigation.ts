@@ -1,5 +1,7 @@
 import { Page } from "puppeteer";
 import { FlightSearchParameters } from "../types";
+import { selectDepartureDate } from "./select-date/departure-date";
+import { selectReturnDate } from "./select-date/return-date";
 import { whereFrom } from "./select-locations/where-from";
 import { whereTo } from "./select-locations/where-to";
 
@@ -22,6 +24,13 @@ export async function navigateToFlights(
   console.log(`Setting origin location to: ${parameters.from}`);
   await whereFrom(page, parameters.from);
   await whereTo(page, parameters.to);
+
+  // Handle dates
+  await selectDepartureDate(page, parameters.departureDate);
+  if (parameters.returnDate) {
+    await selectReturnDate(page, parameters.returnDate);
+  }
+
   // Add a delay to ensure the screenshot captures the entered location
   await new Promise((resolve) => setTimeout(resolve, 1000));
 }

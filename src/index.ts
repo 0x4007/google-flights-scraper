@@ -13,8 +13,8 @@ async function main() {
     console.log("------------------------");
     console.log(`From: ${parameters.from}`);
     console.log(`To: ${parameters.to}`);
-    console.log(`Departure Date: ${parameters.departure}`);
-    console.log(`Return Date: ${parameters.return || "One-way trip"}`);
+    console.log(`Departure Date: ${parameters.departureDate}`);
+    console.log(`Return Date: ${parameters.returnDate || "One-way trip"}`);
     console.log(`Include Budget Carriers: ${parameters.includeBudget}`);
     console.log("------------------------");
 
