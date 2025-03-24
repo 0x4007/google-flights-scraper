@@ -237,7 +237,12 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             const text = getText(el);
             return text && /^\d{1,2}:\d{2}\s*(?:AM|PM)/.test(text);
           })
-          .map((el) => getText(el));
+          .map((el) => {
+            // Extract only the time part to clean up the data
+            const text = getText(el) || "";
+            const timeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/);
+            return timeMatch ? timeMatch[1] : text;
+          });
 
         // Generally, departure time comes first, arrival time second
         const departureTime = times[0] || null;
