@@ -200,7 +200,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             if (price <= 0) continue;
 
             // Data structure for the flight
-            const flightInfo = {
+            const flightInfo: FlightData = {
               price,
               airlines: [],
               bookingCaution: null,
