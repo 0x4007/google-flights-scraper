@@ -1,7 +1,5 @@
 // @ts-nocheck - Browser context code contains many implicit any types that we can't easily fix
 
-
-
 import { Page } from "puppeteer";
 import { FlightData } from "../../types";
 import { captureDOMStructure } from "../../utils/capture-dom";
