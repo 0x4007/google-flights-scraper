@@ -31,6 +31,15 @@ export async function commitChanges(
     // Add all files
     await execAsync("git add .");
 
+    // Check if there are changes to commit
+    const { stdout } = await execAsync("git status --porcelain");
+
+    // If there are no changes, return true without attempting to commit
+    if (!stdout.trim()) {
+      console.log("No changes to commit, working tree clean");
+      return true;
+    }
+
     // Create commit with iteration number and message
     const commitMessage = `[Iteration ${iteration}] ${message}`;
     await execAsync(`git commit -m "${commitMessage}"`);

@@ -5,7 +5,7 @@ import {
   FlightSearchResult,
   GeneticAlgorithmMetadata,
 } from "../types";
-import { getCurrentGitCommit, commitChanges } from "../utils/git-operations";
+import { commitChanges, getCurrentGitCommit } from "../utils/git-operations";
 
 /**
  * Class to manage genetic algorithm iterations
@@ -117,13 +117,16 @@ export class GeneticAlgorithmManager {
       process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev";
     if (success && isDev) {
       try {
-        await commitChanges(
+        const commitResult = await commitChanges(
           `[Iteration ${this.currentIteration}] Successful scrape`,
           this.currentIteration,
         );
-        console.log(
-          `Successfully committed: [Iteration ${this.currentIteration}] Successful scrape`,
-        );
+        // Don't log success if no changes were committed (already handled in git-operations.ts)
+        if (commitResult) {
+          console.log(
+            `Git operation completed for iteration ${this.currentIteration}`,
+          );
+        }
       } catch (error) {
         console.warn(`Warning: Could not commit changes: ${error}`);
       }
