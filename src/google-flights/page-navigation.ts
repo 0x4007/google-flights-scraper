@@ -6,6 +6,7 @@ import { selectDepartureDate } from "./search/select-date/departure-date";
 import { selectReturnDate } from "./search/select-date/return-date";
 import { whereFrom } from "./search/select-locations/where-from";
 import { whereTo } from "./search/select-locations/where-to";
+import { scrapeFlightPrices } from "./scrape/price-scraper";
 
 export async function navigateToFlights(
   page: Page,
@@ -36,6 +37,8 @@ export async function navigateToFlights(
   await clickSearchButton(page);
 
   await applyAllianceFilters(page);
+
+  await scrapeFlightPrices(page);
 
   // Add a delay to ensure the screenshot captures the entered location
   await new Promise((resolve) => setTimeout(resolve, 1000));
