@@ -2,9 +2,9 @@
   "name": "puppeteer-on-actions",
   "version": "1.0.0",
   "description": "Minimal example of using Puppeteer on GitHub Actions with Bun & TypeScript",
-  "main": "take-screenshot.ts",
+  "main": "src/index.ts",
   "scripts": {
-    "screenshot": "bun run take-screenshot.ts"
+    "screenshot": "bun run src/index.ts"
   },
   "keywords": [
     "puppeteer",
