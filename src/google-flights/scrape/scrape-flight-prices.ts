@@ -121,8 +121,47 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
         // Add airline name to array avoiding duplicates
         function addAirlineName(airlines, name) {
-          if (name && !isNonAirlineText(name) && !airlines.includes(name)) {
-            airlines.push(name);
+          if (!name || isNonAirlineText(name)) return;
+
+          // Split concatenated airline names (e.g., "Asiana AirlinesANA" → ["Asiana Airlines", "ANA"])
+          const knownAirlines = [
+            "Asiana Airlines", "Korean Air", "Japan Airlines", "ANA", "JAL",
+            "All Nippon Airways", "Delta", "United", "American"
+          ];
+
+          // Check if the name contains multiple airline names concatenated
+          let cleanedName = name.trim();
+          let foundConcatenation = false;
+
+          for (const airline of knownAirlines) {
+            // Skip if this is exactly the airline we're checking (no concatenation)
+            if (cleanedName === airline) {
+              break;
+            }
+
+            // Look for the airline name followed immediately by another character without space
+            // For example: "Asiana AirlinesANA" contains "Asiana Airlines" followed by "ANA"
+            const regex = new RegExp(`(${airline})([A-Z].*)`, 'i');
+            const match = cleanedName.match(regex);
+
+            if (match) {
+              // We found a concatenated airline name
+              foundConcatenation = true;
+
+              // Add the first airline if not already included
+              if (!airlines.includes(match[1].trim())) {
+                airlines.push(match[1].trim());
+              }
+
+              // Process the second part recursively
+              addAirlineName(airlines, match[2].trim());
+              break;
+            }
+          }
+
+          // If no concatenation found, add the name directly if not already included
+          if (!foundConcatenation && !airlines.includes(cleanedName)) {
+            airlines.push(cleanedName);
           }
         }
 
