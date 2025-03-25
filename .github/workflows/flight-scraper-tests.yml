@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test-job: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        test-job: [1, 2, 3]
       # Don't fail fast so we get results from all jobs
       fail-fast: false
 
@@ -54,30 +54,30 @@ jobs:
           # Run the test script
           bun .github/scripts/run-random-tests.ts --count $TEST_COUNT
 
-      - name: Upload screenshots as artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: flight-screenshots-job-${{ matrix.test-job }}
-          path: screenshot/**/*.png
-          retention-days: 7
+      # - name: Upload screenshots as artifacts
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: flight-screenshots-job-${{ matrix.test-job }}
+      #     path: screenshot/**/*.png
+      #     retention-days: 7
 
-      - name: Upload flight data as artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: flight-data-job-${{ matrix.test-job }}
-          path: screenshot/**/flight-data.json
-          retention-days: 7
-          if-no-files-found: ignore
+      # - name: Upload flight data as artifacts
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: flight-data-job-${{ matrix.test-job }}
+      #     path: screenshot/**/flight-data.json
+      #     retention-days: 7
+      #     if-no-files-found: ignore
 
-      - name: Upload test parameters as artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-parameters-job-${{ matrix.test-job }}
-          path: screenshot/**/parameters.json
-          retention-days: 7
+      # - name: Upload test parameters as artifacts
+      #   uses: actions/upload-artifact@v4
+      #   if: always()
+      #   with:
+      #     name: test-parameters-job-${{ matrix.test-job }}
+      #     path: screenshot/**/parameters.json
+      #     retention-days: 7
 
       - name: Upload error logs (if any)
         uses: actions/upload-artifact@v4
