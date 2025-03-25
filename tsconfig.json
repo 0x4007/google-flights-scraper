@@ -12,5 +12,5 @@
     "types": ["bun-types"]
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/google-flights/scrape/**/*"]
+  "exclude": ["node_modules", "dist"]
 }

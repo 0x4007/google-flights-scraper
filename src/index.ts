@@ -3,6 +3,12 @@ import { launchBrowser } from "./utils/launch";
 import { parseArgs } from "./utils/parse-args";
 import { captureAndSaveScreenshot } from "./utils/take-screenshot";
 
+export { navigateToFlights } from "./google-flights/page-navigation";
+export { scrapeFlightPrices } from "./google-flights/scrape/scrape-flight-prices";
+export { launchBrowser } from "./utils/launch";
+export { parseArgs } from "./utils/parse-args";
+export { captureAndSaveScreenshot } from "./utils/take-screenshot";
+
 async function main() {
   try {
     // Parse command line arguments
