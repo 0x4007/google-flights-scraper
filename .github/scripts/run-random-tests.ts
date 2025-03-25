@@ -155,6 +155,9 @@ async function runFlightTest(
       );
       console.log(`✅ Test #${testIndex + 1} completed successfully`);
 
+      if (global.testMetadata?.success === false) {
+        throw new Error("Test failed due to metadata success=false");
+      }
       return Promise.resolve();
     } catch (error: unknown) {
       const errorMessage =
@@ -189,6 +192,14 @@ async function runFlightTest(
  * Main function to run tests
  */
 async function main() {
+  // Simulate metadata failure
+  global.testMetadata = {
+    iteration: 0,
+    gitCommit: "bebd7fd1c0f2c6d1d1c858afd15fd7ffc4ccf07d",
+    timestamp: Date.now(),
+    success: false
+  };
+
   console.log("🚀 Flight Scraper Random Test Runner");
 
   try {
