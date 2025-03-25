@@ -52,7 +52,7 @@ jobs:
           echo "Running $TEST_COUNT random flight search tests (Job ${{ matrix.test-job }})"
 
           # Run the test script
-          bun scripts/run-random-tests.ts --count $TEST_COUNT
+          bun .github/scripts/run-random-tests.ts --count $TEST_COUNT
 
       - name: Upload screenshots as artifacts
         uses: actions/upload-artifact@v4

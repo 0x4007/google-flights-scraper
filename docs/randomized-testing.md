@@ -28,7 +28,7 @@ console.log(params);
 
 ### 2. Test Runner Script
 
-The test runner script at `scripts/run-random-tests.ts` orchestrates the execution of multiple randomized tests:
+The test runner script at `.github/scripts/run-random-tests.ts` orchestrates the execution of multiple randomized tests:
 
 - Accepts command line arguments for controlling the number of tests
 - Generates random parameters for each test
@@ -63,14 +63,14 @@ bun run test:single
 bun run test:many
 
 # Run with specific count
-bun scripts/run-random-tests.ts --count 5
+bun .github/scripts/run-random-tests.ts --count 5
 ```
 
 You can also provide specific parameters while using the random test infrastructure:
 
 ```bash
 # Run the random test script with specific parameters
-bun scripts/run-random-tests.ts --from "New York" --to "Los Angeles" --departure "2025-05-01" --return "2025-05-10"
+bun .github/scripts/run-random-tests.ts --from "New York" --to "Los Angeles" --departure "2025-05-01" --return "2025-05-10"
 ```
 
 ### GitHub Actions
