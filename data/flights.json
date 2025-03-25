@@ -1,0 +1,57 @@
+{
+  "date": "2025-03-25",
+  "flights": [
+    {
+      "route": {
+        "from": "ICN",
+        "to": "NRT"
+      },
+      "price": 450,
+      "departureDay": "2025-04-01",
+      "daysUntilDeparture": 7,
+      "timestamp": "2025-03-25T09:00:00Z"
+    },
+    {
+      "route": {
+        "from": "ICN",
+        "to": "NRT"
+      },
+      "price": 520,
+      "departureDay": "2025-04-02",
+      "daysUntilDeparture": 8,
+      "timestamp": "2025-03-25T09:00:00Z"
+    },
+    {
+      "route": {
+        "from": "ICN",
+        "to": "HND"
+      },
+      "price": 480,
+      "departureDay": "2025-04-03",
+      "daysUntilDeparture": 9,
+      "timestamp": "2025-03-25T09:00:00Z"
+    }
+  ],
+  "metadata": {
+    "routeStats": {
+      "dayOfWeekAnalysis": {
+        "departures": {
+          "Monday": 1,
+          "Tuesday": 1,
+          "Wednesday": 1
+        },
+        "averagePrices": {
+          "Monday": 450,
+          "Tuesday": 520,
+          "Wednesday": 480
+        }
+      },
+      "daysAheadAnalysis": {
+        "7-13": {
+          "count": 3,
+          "avgPrice": 483.33
+        }
+      }
+    }
+  }
+}

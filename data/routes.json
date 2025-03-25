@@ -1,0 +1,85 @@
+{
+  "routes": [
+    {
+      "from": "ICN",
+      "to": "NRT",
+      "baseScore": 95,
+      "metrics": {
+        "frequency": {
+          "dailyFlights": 32,
+          "weeklyPattern": {
+            "weekday": 0.95,
+            "weekend": 1.0
+          },
+          "score": 90
+        },
+        "competition": {
+          "carriers": 6,
+          "lowCostPresence": 0.4,
+          "directFlights": 0.95,
+          "score": 85
+        },
+        "demand": {
+          "searchVolume": 92,
+          "seasonalDemand": {
+            "spring": 0.9,
+            "summer": 1.0,
+            "fall": 0.85,
+            "winter": 0.8
+          },
+          "score": 88
+        },
+        "seasonality": {
+          "currentSeason": "spring",
+          "peakSeason": "summer",
+          "offPeakAdjustment": 0.85,
+          "score": 87
+        }
+      }
+    },
+    {
+      "from": "ICN",
+      "to": "HND",
+      "baseScore": 93,
+      "metrics": {
+        "frequency": {
+          "dailyFlights": 28,
+          "weeklyPattern": {
+            "weekday": 0.90,
+            "weekend": 1.0
+          },
+          "score": 88
+        },
+        "competition": {
+          "carriers": 5,
+          "lowCostPresence": 0.3,
+          "directFlights": 1.0,
+          "score": 82
+        },
+        "demand": {
+          "searchVolume": 90,
+          "seasonalDemand": {
+            "spring": 0.9,
+            "summer": 1.0,
+            "fall": 0.85,
+            "winter": 0.8
+          },
+          "score": 86
+        },
+        "seasonality": {
+          "currentSeason": "spring",
+          "peakSeason": "summer",
+          "offPeakAdjustment": 0.85,
+          "score": 85
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-03-25T09:58:02.000Z",
+    "version": "1.0.0",
+    "activeRotation": true,
+    "rotationInterval": "6h",
+    "scoringVersion": "1.0.0"
+  }
+}

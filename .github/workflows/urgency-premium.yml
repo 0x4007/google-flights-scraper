@@ -1,0 +1,111 @@
+name: Urgency Premium Analysis
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"  # Every 6 hours
+  workflow_dispatch:        # Allow manual triggers
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      current_route: ${{ steps.get_route.outputs.route }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Get Current Route
+        id: get_route
+        run: |
+          ROUTE=$(bun scripts/get-current-route.ts)
+          echo "route=$ROUTE" >> $GITHUB_OUTPUT
+
+  analyze:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        days_from_now: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+      fail-fast: false
+      max-parallel: 20
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Download Previous Data
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            data/routes/${{ fromJson(needs.prepare.outputs.current_route).from }}-${{ fromJson(needs.prepare.outputs.current_route).to }}
+          key: flight-data-${{ fromJson(needs.prepare.outputs.current_route).from }}-${{ fromJson(needs.prepare.outputs.current_route).to }}
+          restore-keys: |
+            flight-data-${{ fromJson(needs.prepare.outputs.current_route).from }}-${{ fromJson(needs.prepare.outputs.current_route).to }}
+
+      - name: Analyze Prices
+        run: |
+          bun scripts/analyze-trends.ts \
+            --from ${{ fromJson(needs.prepare.outputs.current_route).from }} \
+            --to ${{ fromJson(needs.prepare.outputs.current_route).to }} \
+            --days ${{ matrix.days_from_now }} \
+            --duration 7
+
+      - name: Save Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: flight-data-${{ matrix.days_from_now }}
+          path: data/routes/${{ fromJson(needs.prepare.outputs.current_route).from }}-${{ fromJson(needs.prepare.outputs.current_route).to }}/urgency-premium
+          retention-days: 90
+
+  collect:
+    needs: [prepare, analyze]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Download All Results
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Process Results
+        run: |
+          bun scripts/process-flight-data.ts \
+            --from ${{ fromJson(needs.prepare.outputs.current_route).from }} \
+            --to ${{ fromJson(needs.prepare.outputs.current_route).to }}
+
+      - name: Cache Results
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            data/routes/${{ fromJson(needs.prepare.outputs.current_route).from }}-${{ fromJson(needs.prepare.outputs.current_route).to }}
+          key: flight-data-${{ fromJson(needs.prepare.outputs.current_route).from }}-${{ fromJson(needs.prepare.outputs.current_route).to }}
+
+      - name: Update Dashboard Data
+        run: bun scripts/update-dashboard-data.ts
+
+      - name: Save Dashboard Data
+        uses: actions/upload-artifact@v3
+        with:
+          name: dashboard-data
+          path: data/flights.json
+          retention-days: 90

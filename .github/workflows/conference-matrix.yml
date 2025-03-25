@@ -23,7 +23,30 @@ on:
         default: ""
 
 jobs:
+  # First, restore data from cache
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+
+      # Restore data cache if it exists
+      - name: Restore data cache
+        id: cache-data
+        uses: actions/cache@v3
+        with:
+          path: data
+          key: flight-data-${{ github.run_id }}
+          restore-keys: |
+            flight-data-
+
+      # Create data directory if it doesn't exist
+      - name: Ensure data directory exists
+        if: steps.cache-data.outputs.cache-hit != 'true'
+        run: mkdir -p data
+
   setup:
+    needs: prepare
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -50,30 +73,69 @@ jobs:
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   process:
-    needs: setup
+    needs: [setup, prepare]
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
-      # Prevent all jobs from failing if one fails
       fail-fast: false
-      # Allow multiple jobs to run in parallel
       max-parallel: 10
 
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
 
-      - name: Process Conference
+      # Restore data cache
+      - name: Restore data cache
+        uses: actions/cache@v3
+        with:
+          path: data
+          key: flight-data-${{ github.run_id }}
+          restore-keys: |
+            flight-data-
+
+      - name: Process Flight Data
+        id: process-flight
         env:
           START_DATE: ${{ matrix.startDate }}
           END_DATE: ${{ matrix.endDate }}
           LOCATION: ${{ matrix.location }}
           PRICE: ${{ matrix.price }}
         run: |
-          echo "Processing conference:"
+          echo "Processing flight route:"
           echo "Start Date: $START_DATE"
           echo "End Date: $END_DATE"
           echo "Location: $LOCATION"
           echo "Price: $PRICE"
-          # Add your actual conference processing logic here
-          bun run .github/scripts/process-conference.ts
+
+          # Process and output flight data
+          FLIGHT_DATA=$(bun run .github/scripts/process-flight-data.ts)
+          echo "flight_data=$FLIGHT_DATA" >> $GITHUB_OUTPUT
+
+      - name: Store Flight Data
+        env:
+          FLIGHT_DATA: ${{ steps.process-flight.outputs.flight_data }}
+        run: bun run scripts/store-flight-data.ts
+
+  # Final job to save updated data cache
+  save-data:
+    needs: process
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Restore the final state of data
+      - name: Restore final data cache
+        uses: actions/cache@v3
+        with:
+          path: data
+          key: flight-data-${{ github.run_id }}
+          restore-keys: |
+            flight-data-
+
+      # Save data to artifacts for persistence
+      - name: Upload data artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: flight-data
+          path: data/
+          retention-days: 90

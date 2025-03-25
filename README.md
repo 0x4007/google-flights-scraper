@@ -42,6 +42,68 @@ bun run test:single         # 1 random test
 bun run test:many           # 10 random tests
 ```
 
+## Flight Data Analytics System
+
+This project includes a comprehensive flight data analytics system that collects, stores, and analyzes flight prices over time. The system runs automatically through GitHub Actions and provides insights through an interactive dashboard.
+
+### Features
+
+- Automated data collection via GitHub Actions
+- Price trend analysis by route
+- Day of week price patterns
+- Advance booking price analysis
+- Interactive dashboard with real-time updates
+- Data persistence through GitHub Actions cache and artifacts
+
+### Getting Started
+
+1. Run the dashboard:
+```bash
+npm run dashboard
+```
+Then open http://localhost:3000 in your browser.
+
+2. Analyze trends:
+```bash
+npm run analyze
+```
+
+3. Process new data:
+```bash
+npm run data:process
+```
+
+### Architecture
+
+The system consists of several components:
+
+1. Data Collection
+   - GitHub Actions workflow collects flight prices
+   - Automatic scheduling for regular updates
+   - Data deduplication within 24-hour windows
+
+2. Data Storage
+   - JSON-based data format
+   - GitHub Actions cache for quick access
+   - 90-day artifact retention for historical data
+
+3. Analysis Tools
+   - Real-time price trend visualization
+   - Statistical analysis of pricing patterns
+   - Day-of-week and advance booking insights
+
+For detailed documentation, see [Flight Data Analytics Guide](docs/flight-data-analytics.md)
+
+```mermaid
+graph TD
+    A[GitHub Actions] -->|Collects| B[Flight Data]
+    B -->|Stored in| C[JSON Database]
+    C -->|Analyzed by| D[Dashboard]
+    C -->|Processed by| E[Analytics Tools]
+    C -->|Cached in| F[GitHub Actions Cache]
+    C -->|Archived in| G[GitHub Artifacts]
+```
+
 The screenshots and results will be saved to the `screenshot` directory.
 
 ## Randomized Testing

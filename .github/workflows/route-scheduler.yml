@@ -1,0 +1,98 @@
+name: Route Scheduler
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"  # Every 6 hours
+  workflow_dispatch:        # Allow manual triggers
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Update Current Route
+        id: update_route
+        run: |
+          ROUTE=$(bun scripts/get-current-route.ts)
+          echo "route=$ROUTE" >> $GITHUB_OUTPUT
+
+      - name: Trigger Urgency Premium Analysis
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const route = JSON.parse(process.env.ROUTE);
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'urgency-premium.yml',
+              ref: context.ref,
+              inputs: {
+                from: route.from,
+                to: route.to
+              }
+            });
+        env:
+          ROUTE: ${{ steps.update_route.outputs.route }}
+
+      - name: Commit Route Update
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/current-route.json
+          git commit -m "chore: update current route to ${{ fromJson(steps.update_route.outputs.route).from }}-${{ fromJson(steps.update_route.outputs.route).to }}"
+          git push
+
+  housekeeping:
+    runs-on: ubuntu-latest
+    needs: rotate
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Clear Old Artifacts
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Keep artifacts from last 7 days only
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 7);
+
+            for (const artifact of artifacts.data.artifacts) {
+              if (new Date(artifact.created_at) < cutoff) {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id
+                });
+              }
+            }
+
+      - name: Update Statistics
+        run: |
+          bun scripts/process-flight-data.ts \
+            --from ${{ fromJson(steps.update_route.outputs.route).from }} \
+            --to ${{ fromJson(steps.update_route.outputs.route).to }}
+          bun scripts/update-dashboard-data.ts
