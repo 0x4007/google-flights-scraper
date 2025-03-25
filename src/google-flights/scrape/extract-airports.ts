@@ -1,4 +1,4 @@
-import airportCodes from 'airport-codes';
+import airportCodes from "airport-codes";
 
 interface AirportResult {
   origin: string | null;
@@ -22,10 +22,10 @@ export function extractAirports(flightElement: Element): AirportResult {
 
     if (airportCodeMatches && airportCodeMatches.length >= 2) {
       // Filter to only valid IATA codes using airport-codes package
-      const validCodes = airportCodeMatches.filter(code => {
+      const validCodes = airportCodeMatches.filter((code) => {
         try {
           const airport = airportCodes.findWhere({ iata: code });
-          return airport && airport.get('iata') === code;
+          return airport && airport.get("iata") === code;
         } catch {
           return false;
         }
@@ -46,11 +46,13 @@ export function extractAirports(flightElement: Element): AirportResult {
 
     for (const element of airportMentionsElements) {
       const ariaLabel = element.getAttribute("aria-label") || "";
-      const airportMatches = ariaLabel.match(/([A-Za-z\s]+)(?:International Airport|Airport).*?\b([A-Z]{3})\b/g);
+      const airportMatches = ariaLabel.match(
+        /([A-Za-z\s]+)(?:International Airport|Airport).*?\b([A-Z]{3})\b/g,
+      );
 
       if (airportMatches) {
         const codes = airportMatches
-          .map(match => {
+          .map((match) => {
             const code = match.match(/\b([A-Z]{3})\b/)?.[1];
             if (code) {
               try {
@@ -74,15 +76,14 @@ export function extractAirports(flightElement: Element): AirportResult {
 
   // ----- Direct Text Content Approach -----
   if (!origin || !destination) {
-    const codes = extractAllAirportCodes(flightElement)
-      .filter(code => {
-        try {
-          const airport = airportCodes.findWhere({ iata: code });
-          return airport && airport.get('iata') === code;
-        } catch {
-          return false;
-        }
-      });
+    const codes = extractAllAirportCodes(flightElement).filter((code) => {
+      try {
+        const airport = airportCodes.findWhere({ iata: code });
+        return airport && airport.get("iata") === code;
+      } catch {
+        return false;
+      }
+    });
 
     if (codes.length >= 2) {
       [origin, destination] = codes;
@@ -91,7 +92,8 @@ export function extractAirports(flightElement: Element): AirportResult {
 
   // If still no valid airports found, look for city names and map to airports
   if (!origin || !destination) {
-    const { origin: mappedOrigin, destination: mappedDestination } = findAirportsByCityNames(flightElement);
+    const { origin: mappedOrigin, destination: mappedDestination } =
+      findAirportsByCityNames(flightElement);
     if (mappedOrigin) origin = mappedOrigin;
     if (mappedDestination) destination = mappedDestination;
   }
@@ -118,8 +120,8 @@ function findAirportsByCityNames(flightElement: Element): AirportResult {
 
   // Extract potential city names from the text
   const words = text.split(/[\s,.-]+/);
-  const potentialCities = words.filter(word =>
-    word.length > 2 && /^[A-Z][a-z]+$/.test(word)
+  const potentialCities = words.filter(
+    (word) => word.length > 2 && /^[A-Z][a-z]+$/.test(word),
   );
 
   for (const city of potentialCities) {
@@ -130,13 +132,13 @@ function findAirportsByCityNames(flightElement: Element): AirportResult {
       if (cityAirports && cityAirports.length > 0) {
         // Sort airports by size/importance (using type as a proxy)
         const mainAirport = cityAirports.sort((a, b) => {
-          const typeA = a.get('type') || '';
-          const typeB = b.get('type') || '';
+          const typeA = a.get("type") || "";
+          const typeB = b.get("type") || "";
           // Prefer large_airport over medium_airport over small_airport
           return typeB.localeCompare(typeA);
         })[0];
 
-        const code = mainAirport.get('iata');
+        const code = mainAirport.get("iata");
         if (code) {
           if (!origin) {
             origin = code;

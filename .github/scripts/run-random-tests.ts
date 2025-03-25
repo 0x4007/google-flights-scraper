@@ -38,9 +38,10 @@ async function parseRunOptions(): Promise<{
   const args = process.argv.slice(2);
   const testCountIndex = args.indexOf("--count");
   // Default to 1 test per job - concurrency handled by GitHub Actions matrix
-  const testCount = testCountIndex !== -1 && testCountIndex + 1 < args.length
-    ? Math.max(1, parseInt(args[testCountIndex + 1], 10) || 1)
-    : 1;
+  const testCount =
+    testCountIndex !== -1 && testCountIndex + 1 < args.length
+      ? Math.max(1, parseInt(args[testCountIndex + 1], 10) || 1)
+      : 1;
 
   // If any standard flight search parameters are provided, try to use them
   try {
@@ -189,7 +190,7 @@ async function main() {
     iteration: 0,
     gitCommit: process.env.GITHUB_SHA || "unknown",
     timestamp: Date.now(),
-    success: true
+    success: true,
   };
 
   console.log("🚀 Flight Scraper Random Test Runner");
@@ -245,7 +246,10 @@ async function main() {
 
     // Process metadata if available
     if (global.testMetadata) {
-      console.log("\nMetadata Status:", global.testMetadata.success ? "✅ Success" : "❌ Failed");
+      console.log(
+        "\nMetadata Status:",
+        global.testMetadata.success ? "✅ Success" : "❌ Failed",
+      );
     }
 
     // Exit with error code if any tests failed or metadata indicates failure
