@@ -77,12 +77,33 @@ export class GeneticAlgorithmManager {
     parameters: FlightSearchParameters,
     flightData: FlightSearchResult["results"],
   ): Promise<FlightSearchResult> {
-    // Get current git commit
-    const gitCommit = await getCurrentGitCommit();
-
     // Calculate score
     // const score = this.calculateScore(flightData);
     const success = flightData.length > 0;
+
+    // Only perform git operations if we're in development mode (not on GitHub Actions)
+    const isDev =
+      process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev";
+    let gitCommit = "none";
+
+    if (success && isDev) {
+      try {
+        gitCommit = await getCurrentGitCommit();
+        const commitResult = await commitChanges(
+          `[Iteration ${this.currentIteration}] Successful scrape`,
+          this.currentIteration,
+        );
+        // Don't log success if no changes were committed (already handled in git-operations.ts)
+        if (commitResult) {
+          console.log(
+            `Git operation completed for iteration ${this.currentIteration}`,
+          );
+        }
+      } catch (error) {
+        console.warn(`Warning: Could not commit changes: ${error}`);
+        gitCommit = "error";
+      }
+    }
 
     // Create metadata
     const metadata: GeneticAlgorithmMetadata = {
@@ -111,29 +132,10 @@ export class GeneticAlgorithmManager {
     );
 
     console.log(`Saved flight data for iteration ${this.currentIteration}`);
-
-    // Only perform git commit if we're in development mode (not on GitHub Actions)
-    const isDev =
-      process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev";
-    if (success && isDev) {
-      try {
-        const commitResult = await commitChanges(
-          `[Iteration ${this.currentIteration}] Successful scrape`,
-          this.currentIteration,
-        );
-        // Don't log success if no changes were committed (already handled in git-operations.ts)
-        if (commitResult) {
-          console.log(
-            `Git operation completed for iteration ${this.currentIteration}`,
-          );
-        }
-      } catch (error) {
-        console.warn(`Warning: Could not commit changes: ${error}`);
-      }
-    } else if (!isDev) {
-      console.log(
-        `Skipping Git commit as NODE_ENV is not 'development' or 'dev'`,
-      );
+    if (isDev && gitCommit !== "error") {
+      console.log(`Results saved with git commit: ${gitCommit}`);
+    } else {
+      console.log(`Results saved (no new commit in non-dev mode)`);
     }
 
     // Increment iteration for next run
