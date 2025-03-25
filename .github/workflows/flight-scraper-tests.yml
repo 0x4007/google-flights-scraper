@@ -9,78 +9,84 @@ on:
   # Allow manual triggering with input parameters
   workflow_dispatch:
     inputs:
-      test_count:
-        description: "Number of random tests to run per job"
+      concurrent_jobs:
+        description: "Run tests concurrently"
         required: false
-        default: "1"
-        type: number
+        default: true
+        type: boolean
 
 jobs:
+  # Main test job that always runs
   random-tests:
     runs-on: ubuntu-latest
+    name: Test Job ${{ matrix.test-job }}
     strategy:
       matrix:
-        test-job: [1, 2, 3]
-      # Don't fail fast so we get results from all jobs
-      fail-fast: false
-
-    name: Test Job ${{ matrix.test-job }}
-
+        test-job: [1]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-
-      - name: Install dependencies
-        run: bun install
-
+      - run: bun install
       - name: Set random seed
         run: |
-          # Create a unique seed based on matrix value and time
           RANDOM_SEED=$(( ${{ matrix.test-job }} + $(date +%s) ))
           echo "Using random seed: $RANDOM_SEED"
           export RANDOM=$RANDOM_SEED
+      - name: Run test
+        run: bun .github/scripts/run-random-tests.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: error-logs-job-${{ matrix.test-job }}
+          path: screenshot/**/error.txt
+          retention-days: 7
+          if-no-files-found: ignore
 
-      - name: Run random flight search tests
+  # Additional concurrent tests that run only if concurrent_jobs is true
+  additional-tests:
+    needs: random-tests
+    if: ${{ github.event.inputs.concurrent_jobs != 'false' }}
+    runs-on: ubuntu-latest
+    name: Test Job ${{ matrix.test-job }}
+    strategy:
+      matrix:
+        test-job:
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+          - 16
+          - 17
+          - 18
+          - 19
+          - 20
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - run: bun install
+      - name: Set random seed
         run: |
-          # Get the test count from input or use default
-          TEST_COUNT=${{ github.event.inputs.test_count || 1 }}
-          echo "Running $TEST_COUNT random flight search tests (Job ${{ matrix.test-job }})"
-
-          # Run the test script
-          bun .github/scripts/run-random-tests.ts --count $TEST_COUNT
-
-      # - name: Upload screenshots as artifacts
-      #   uses: actions/upload-artifact@v4
-      #   if: always()
-      #   with:
-      #     name: flight-screenshots-job-${{ matrix.test-job }}
-      #     path: screenshot/**/*.png
-      #     retention-days: 7
-
-      # - name: Upload flight data as artifacts
-      #   uses: actions/upload-artifact@v4
-      #   if: always()
-      #   with:
-      #     name: flight-data-job-${{ matrix.test-job }}
-      #     path: screenshot/**/flight-data.json
-      #     retention-days: 7
-      #     if-no-files-found: ignore
-
-      # - name: Upload test parameters as artifacts
-      #   uses: actions/upload-artifact@v4
-      #   if: always()
-      #   with:
-      #     name: test-parameters-job-${{ matrix.test-job }}
-      #     path: screenshot/**/parameters.json
-      #     retention-days: 7
-
-      - name: Upload error logs (if any)
-        uses: actions/upload-artifact@v4
+          RANDOM_SEED=$(( ${{ matrix.test-job }} + $(date +%s) ))
+          echo "Using random seed: $RANDOM_SEED"
+          export RANDOM=$RANDOM_SEED
+      - name: Run test
+        run: bun .github/scripts/run-random-tests.ts
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: error-logs-job-${{ matrix.test-job }}

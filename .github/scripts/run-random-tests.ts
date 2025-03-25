@@ -30,25 +30,17 @@ declare global {
   var testMetadata: TestMetadata | undefined;
 }
 
-// Default test count
-const DEFAULT_TEST_COUNT = 3;
-
 // Command line argument parsing
 async function parseRunOptions(): Promise<{
   testCount: number;
   useExactParams?: FlightSearchParameters;
 }> {
   const args = process.argv.slice(2);
-  let testCount = DEFAULT_TEST_COUNT;
-
-  // Extract test count from command line args if present
   const testCountIndex = args.indexOf("--count");
-  if (testCountIndex !== -1 && testCountIndex + 1 < args.length) {
-    const count = parseInt(args[testCountIndex + 1], 10);
-    if (!isNaN(count) && count > 0) {
-      testCount = count;
-    }
-  }
+  // Default to 1 test per job - concurrency handled by GitHub Actions matrix
+  const testCount = testCountIndex !== -1 && testCountIndex + 1 < args.length
+    ? Math.max(1, parseInt(args[testCountIndex + 1], 10) || 1)
+    : 1;
 
   // If any standard flight search parameters are provided, try to use them
   try {
