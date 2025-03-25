@@ -184,12 +184,12 @@ async function runFlightTest(
  * Main function to run tests
  */
 async function main() {
-  // Simulate metadata failure
+  // Initialize metadata with success=true
   global.testMetadata = {
     iteration: 0,
-    gitCommit: "bebd7fd1c0f2c6d1d1c858afd15fd7ffc4ccf07d",
+    gitCommit: process.env.GITHUB_SHA || "unknown",
     timestamp: Date.now(),
-    success: false
+    success: true
   };
 
   console.log("🚀 Flight Scraper Random Test Runner");
@@ -228,6 +228,9 @@ async function main() {
         passed++;
       } catch (error: unknown) {
         failed++;
+        if (global.testMetadata) {
+          global.testMetadata.success = false;
+        }
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         console.error(`Test #${i + 1} failed:`, errorMessage);
@@ -253,6 +256,9 @@ async function main() {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error in test runner:", errorMessage);
+    if (global.testMetadata) {
+      global.testMetadata.success = false;
+    }
     process.exit(1);
   }
 }
