@@ -6,17 +6,17 @@
 
 import fs from "fs";
 import path from "path";
-import { applyAllianceFilters } from "../src/google-flights/filter/alliance-filter-handler";
-import { navigateToFlights } from "../src/google-flights/page-navigation";
-import { scrapeFlightPrices } from "../src/google-flights/scrape/scrape-flight-prices";
-import { FlightSearchParameters } from "../src/types";
+import { applyAllianceFilters } from "../../src/google-flights/filter/alliance-filter-handler";
+import { navigateToFlights } from "../../src/google-flights/page-navigation";
+import { scrapeFlightPrices } from "../../src/google-flights/scrape/scrape-flight-prices";
+import { FlightSearchParameters } from "../../src/types";
 import {
   generateMultipleRandomParameters,
   logGeneratedParameters,
-} from "../src/utils/generate-random-parameters";
-import { launchBrowser } from "../src/utils/launch";
-import { parseArgs } from "../src/utils/parse-args";
-import { captureAndSaveScreenshot } from "../src/utils/take-screenshot";
+} from "../../src/utils/generate-random-parameters";
+import { launchBrowser } from "../../src/utils/launch";
+import { parseArgs } from "../../src/utils/parse-args";
+import { captureAndSaveScreenshot } from "../../src/utils/take-screenshot";
 
 // Default test count
 const DEFAULT_TEST_COUNT = 3;
