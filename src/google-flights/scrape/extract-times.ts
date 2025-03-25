@@ -1,6 +1,5 @@
 import { getText } from "./get-text";
 
-
 export function extractTimes(flightElement: Element): {
   departureTime: null | string;
   arrivalTime: null | string;

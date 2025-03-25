@@ -1,4 +1,3 @@
-
 export function isNonAirlineText(text: string): boolean {
   return (
     text.includes("Nonstop") ||

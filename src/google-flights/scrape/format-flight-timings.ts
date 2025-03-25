@@ -19,9 +19,7 @@ export function formatFlightTimings(flight: FlightData): string {
   // Case 2: Arrival time incorrectly matches departure time
   if (arrTime === deptTime && flight.duration) {
     // Try to estimate arrival time offset based on duration
-    const durMatch = flight.duration.match(
-      /(\d+)\s*hr\s*(?:(\d+)\s*min)?/
-    );
+    const durMatch = flight.duration.match(/(\d+)\s*hr\s*(?:(\d+)\s*min)?/);
     if (durMatch) {
       const hours = parseInt(durMatch[1], 10);
       const minutes = durMatch[2] ? parseInt(durMatch[2], 10) : 0;

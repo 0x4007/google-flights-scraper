@@ -24,10 +24,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
     // Strategy 1: Wait for price elements to appear on the page ($ or "US dollars")
     console.debug("Waiting for price elements to appear on the page...");
     try {
-      await page.waitForFunction(
-        findPriceElements(),
-        { timeout: 15000 }
-      );
+      await page.waitForFunction(findPriceElements(), { timeout: 15000 });
 
       console.debug("Price elements found, proceeding with scraping");
       // Capture DOM structure specifically focused on price elements
@@ -35,12 +32,14 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
     } catch (err) {
       console.warn(
         "Timeout waiting for price elements, will try alternative approaches:",
-        err
+        err,
       );
     }
 
     // Capture the structure of the flights container before extraction
-    console.debug("Capturing flight container structure before detailed extraction");
+    console.debug(
+      "Capturing flight container structure before detailed extraction",
+    );
     await captureDOMStructure(page, "flight-container-before-extraction");
 
     // Extract flight data directly with a single evaluate call
@@ -53,14 +52,15 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
         // Find flight elements within a container
         function findFlightElements(container) {
-          return Array.from(container.querySelectorAll("li")).filter(li => {
+          return Array.from(container.querySelectorAll("li")).filter((li) => {
             const hasPriceElement =
-              li.querySelector('span[data-gs][aria-label*="US dollars"]') !== null ||
+              li.querySelector('span[data-gs][aria-label*="US dollars"]') !==
+                null ||
               li.querySelector('span[aria-label*="US dollars"]') !== null ||
               li.textContent?.includes("$");
 
             const hasDuration = Array.from(li.querySelectorAll("div")).some(
-              div => /^\d+\s*hr/.test(div.textContent?.trim() || "")
+              (div) => /^\d+\s*hr/.test(div.textContent?.trim() || ""),
             );
 
             const isNotButton =
@@ -85,7 +85,11 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           if (cleanText.length < 2) return true;
 
           // Check for date patterns (like "Tue, Apr 1")
-          if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}/.test(cleanText)) {
+          if (
+            /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}/.test(
+              cleanText,
+            )
+          ) {
             return true;
           }
 
@@ -106,8 +110,8 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             cleanText.includes("Departure") ||
             cleanText.includes("Unknown emissions") ||
             /\d{1,2}:\d{2}/.test(cleanText) || // Skip times
-            /^\d{1,2}/.test(cleanText) ||     // Skip numbers
-            /^[A-Z]{3}$/.test(cleanText) ||  // Airport codes often have 3 capital letters
+            /^\d{1,2}/.test(cleanText) || // Skip numbers
+            /^[A-Z]{3}$/.test(cleanText) || // Airport codes often have 3 capital letters
             cleanText.includes("+") ||
             cleanText.includes("%")
           ) {
@@ -123,8 +127,15 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
           // Split concatenated airline names (e.g., "Asiana AirlinesANA" → ["Asiana Airlines", "ANA"])
           const knownAirlines = [
-            "Asiana Airlines", "Korean Air", "Japan Airlines", "ANA", "JAL",
-            "All Nippon Airways", "Delta", "United", "American"
+            "Asiana Airlines",
+            "Korean Air",
+            "Japan Airlines",
+            "ANA",
+            "JAL",
+            "All Nippon Airways",
+            "Delta",
+            "United",
+            "American",
           ];
 
           // Check if the name contains multiple airline names concatenated
@@ -139,7 +150,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
             // Look for the airline name followed immediately by another character without space
             // For example: "Asiana AirlinesANA" contains "Asiana Airlines" followed by "ANA"
-            const regex = new RegExp(`(${airline})([A-Z].*)`, 'i');
+            const regex = new RegExp(`(${airline})([A-Z].*)`, "i");
             const match = cleanedName.match(regex);
 
             if (match) {
@@ -169,16 +180,38 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
           // Common airline keywords to help with identification
           const airlineKeywords = [
-            "Airlines", "Air ", "Airways", "ANA", "JAL", "Korean Air", "Asiana",
-            "Delta", "United", "American", "Japan Airlines", "All Nippon"
+            "Airlines",
+            "Air ",
+            "Airways",
+            "ANA",
+            "JAL",
+            "Korean Air",
+            "Asiana",
+            "Delta",
+            "United",
+            "American",
+            "Japan Airlines",
+            "All Nippon",
           ];
 
           // Known airline codes to consider when looking for potential airline names
-          const commonAirlineCodes = ["KE", "OZ", "NH", "JL", "KL", "AF", "UA", "AA", "DL", "CX", "SQ"];
+          const commonAirlineCodes = [
+            "KE",
+            "OZ",
+            "NH",
+            "JL",
+            "KL",
+            "AF",
+            "UA",
+            "AA",
+            "DL",
+            "CX",
+            "SQ",
+          ];
 
           // Method 1: Find airline logo images (most reliable)
           const airlineImages = flightElement.querySelectorAll(
-            'img[alt*="Airlines"], img[alt*="Air"], img[alt*="Airways"], img[alt*="ANA"], img[alt*="JAL"]'
+            'img[alt*="Airlines"], img[alt*="Air"], img[alt*="Airways"], img[alt*="ANA"], img[alt*="JAL"]',
           );
 
           for (const img of Array.from(airlineImages)) {
@@ -191,7 +224,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           // Method 2: Look for aria-labels with airline information
           const elementsWithAriaLabel = flightElement.querySelectorAll(
             '[aria-label*="Airlines"], [aria-label*="Air "], [aria-label*="Airways"], ' +
-            '[aria-label*="flight with"], [aria-label*="operated by"], [aria-label*="carrier"]'
+              '[aria-label*="flight with"], [aria-label*="operated by"], [aria-label*="carrier"]',
           );
 
           for (const el of Array.from(elementsWithAriaLabel)) {
@@ -204,7 +237,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
               /carrier(?:s?): ([^,.]+?)(?:\.|and|,|$)/i,
               /([^,.]+? Airlines)(?:\.|and|,|$)/i,
               /([^,.]+? Airways)(?:\.|and|,|$)/i,
-              /([^,.]+? Air)(?:$|\s+|\.|and|,)/i
+              /([^,.]+? Air)(?:$|\s+|\.|and|,)/i,
             ];
 
             for (const pattern of patterns) {
@@ -221,17 +254,19 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           // Get all potentially relevant text nodes
           function collectTextNodes(element) {
             // Skip irrelevant containers
-            if (element.getAttribute && (
-                element.getAttribute("role") === "button" ||
+            if (
+              element.getAttribute &&
+              (element.getAttribute("role") === "button" ||
                 element.getAttribute("aria-label")?.includes("price") ||
                 element.getAttribute("aria-label")?.includes("duration") ||
-                element.tagName === "BUTTON"
-            )) {
+                element.tagName === "BUTTON")
+            ) {
               return;
             }
 
             // Check the node's text content
-            if (element.nodeType === 3 && element.textContent.trim()) { // Text node
+            if (element.nodeType === 3 && element.textContent.trim()) {
+              // Text node
               textNodes.push(element.textContent.trim());
             }
 
@@ -244,12 +279,20 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           }
 
           // Start collecting from various container elements
-          for (const container of Array.from(flightElement.querySelectorAll('div[role="row"], div[role="cell"], div[role="gridcell"]'))) {
+          for (const container of Array.from(
+            flightElement.querySelectorAll(
+              'div[role="row"], div[role="cell"], div[role="gridcell"]',
+            ),
+          )) {
             collectTextNodes(container);
           }
 
           // Also look in specific span elements that might contain airline info
-          for (const span of Array.from(flightElement.querySelectorAll('span:not([aria-label*="price"]):not([aria-label*="duration"])'))) {
+          for (const span of Array.from(
+            flightElement.querySelectorAll(
+              'span:not([aria-label*="price"]):not([aria-label*="duration"])',
+            ),
+          )) {
             collectTextNodes(span);
           }
 
@@ -265,7 +308,11 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
             // Check for common airline codes followed by flight numbers
             for (const code of commonAirlineCodes) {
-              if (text.includes(code) && /[A-Z]{2}\s*\d+/.test(text) && !isNonAirlineText(text)) {
+              if (
+                text.includes(code) &&
+                /[A-Z]{2}\s*\d+/.test(text) &&
+                !isNonAirlineText(text)
+              ) {
                 // This is likely an airline code with flight number
                 // Try to map code to airline name
                 const airlineName = mapAirlineCodeToName(code);
@@ -279,10 +326,16 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
           // Method 4: Examine specific regions of the flight card for airline info
           // Check for airline text in specific locations (middle section of flight cards)
-          const middleSections = Array.from(flightElement.querySelectorAll('div:nth-child(2) > div'));
+          const middleSections = Array.from(
+            flightElement.querySelectorAll("div:nth-child(2) > div"),
+          );
           for (const section of middleSections) {
             const text = section.textContent?.trim() || "";
-            if (text.length > 2 && !text.includes("$") && !isNonAirlineText(text)) {
+            if (
+              text.length > 2 &&
+              !text.includes("$") &&
+              !isNonAirlineText(text)
+            ) {
               for (const keyword of airlineKeywords) {
                 if (text.includes(keyword)) {
                   addAirlineName(airlines, text);
@@ -294,22 +347,28 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
           // Method 5: Last resort for empty airlines - check for any spans that might contain airline info
           if (airlines.length === 0) {
-            const allSpans = Array.from(flightElement.querySelectorAll('span'))
-              .map(el => el.textContent?.trim())
-              .filter(text => text && text.length > 2 && !isNonAirlineText(text) &&
-                     !text.match(/^\d/) && // Ignore spans that start with numbers
-                     !text.includes("$") && // Ignore price information
-                     !text.includes("stop") && // Ignore stop information
-                     !/^\d{1,2}:\d{2}/.test(text)); // Ignore time formats
+            const allSpans = Array.from(flightElement.querySelectorAll("span"))
+              .map((el) => el.textContent?.trim())
+              .filter(
+                (text) =>
+                  text &&
+                  text.length > 2 &&
+                  !isNonAirlineText(text) &&
+                  !text.match(/^\d/) && // Ignore spans that start with numbers
+                  !text.includes("$") && // Ignore price information
+                  !text.includes("stop") && // Ignore stop information
+                  !/^\d{1,2}:\d{2}/.test(text),
+              ); // Ignore time formats
 
             for (const text of allSpans) {
               // Look for potential airline names based on common patterns
-              if (text && (
-                  text.includes("Airlines") ||
+              if (
+                text &&
+                (text.includes("Airlines") ||
                   text.includes("Air ") ||
                   text.includes("Airways") ||
-                  commonAirlineCodes.some(code => text.includes(code))
-              )) {
+                  commonAirlineCodes.some((code) => text.includes(code)))
+              ) {
                 addAirlineName(airlines, text);
               }
             }
@@ -342,10 +401,13 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
             if (origin && destination) {
               // GMP (Gimpo) → HND (Haneda) route is typically operated by:
-              if ((origin === "GMP" && destination === "HND") ||
-                  (origin === "HND" && destination === "GMP")) {
+              if (
+                (origin === "GMP" && destination === "HND") ||
+                (origin === "HND" && destination === "GMP")
+              ) {
                 // The two main carriers on this route:
-                if (Math.random() < 0.5) { // Randomly select one of the two main carriers
+                if (Math.random() < 0.5) {
+                  // Randomly select one of the two main carriers
                   addAirlineName(airlines, "Korean Air"); // KE airlines
                 } else {
                   addAirlineName(airlines, "Japan Airlines"); // JL airlines
@@ -353,8 +415,12 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
               }
 
               // ICN (Incheon) → NRT (Narita) or HND (Haneda) routes
-              else if ((origin === "ICN" && (destination === "NRT" || destination === "HND")) ||
-                      ((origin === "NRT" || origin === "HND") && destination === "ICN")) {
+              else if (
+                (origin === "ICN" &&
+                  (destination === "NRT" || destination === "HND")) ||
+                ((origin === "NRT" || origin === "HND") &&
+                  destination === "ICN")
+              ) {
                 // Randomly select one of the three main carriers for this route
                 const rand = Math.random();
                 if (rand < 0.33) {
@@ -380,17 +446,17 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         // Helper function to map airline codes to names
         function mapAirlineCodeToName(code) {
           const airlineCodeMap = {
-            "KE": "Korean Air",
-            "OZ": "Asiana Airlines",
-            "JL": "Japan Airlines",
-            "NH": "All Nippon Airways",
-            "KL": "KLM Royal Dutch Airlines",
-            "AF": "Air France",
-            "UA": "United Airlines",
-            "AA": "American Airlines",
-            "DL": "Delta Air Lines",
-            "CX": "Cathay Pacific",
-            "SQ": "Singapore Airlines"
+            KE: "Korean Air",
+            OZ: "Asiana Airlines",
+            JL: "Japan Airlines",
+            NH: "All Nippon Airways",
+            KL: "KLM Royal Dutch Airlines",
+            AF: "Air France",
+            UA: "United Airlines",
+            AA: "American Airlines",
+            DL: "Delta Air Lines",
+            CX: "Cathay Pacific",
+            SQ: "Singapore Airlines",
           };
 
           return airlineCodeMap[code] || null;
@@ -398,9 +464,15 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
         // Extract booking caution information
         function extractBookingCaution(flightElement) {
-          const cautionTexts = ["Self transfer", "Separate tickets", "Multiple airlines"];
+          const cautionTexts = [
+            "Self transfer",
+            "Separate tickets",
+            "Multiple airlines",
+          ];
 
-          for (const el of Array.from(flightElement.querySelectorAll("div, span"))) {
+          for (const el of Array.from(
+            flightElement.querySelectorAll("div, span"),
+          )) {
             const text = el.textContent?.trim() || "";
 
             for (const cautionType of cautionTexts) {
@@ -422,11 +494,14 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
           // Try to find times in a more precise way using surrounding context
           // Method 1: Look for time elements with specific context labels
-          const elements = Array.from(flightElement.querySelectorAll("div, span"));
+          const elements = Array.from(
+            flightElement.querySelectorAll("div, span"),
+          );
 
           // First pass: Look for elements with clear departure or arrival indicators in aria-labels
           for (const el of elements) {
-            const ariaLabel = el.getAttribute && el.getAttribute("aria-label") || "";
+            const ariaLabel =
+              (el.getAttribute && el.getAttribute("aria-label")) || "";
             const text = el.textContent?.trim() || "";
 
             // Check for time pattern
@@ -435,7 +510,10 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             // Determine if departure or arrival based on aria-label
             if (ariaLabel.includes("depart") || ariaLabel.includes("leaves")) {
               departureTime = text;
-            } else if (ariaLabel.includes("arrive") || ariaLabel.includes("arrives")) {
+            } else if (
+              ariaLabel.includes("arrive") ||
+              ariaLabel.includes("arrives")
+            ) {
               arrivalTime = text;
             }
           }
@@ -443,13 +521,19 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           // Second pass: Look for flight time elements in specific flight detail layouts
           if (!departureTime || !arrivalTime) {
             // Try to find time elements within a row or cell structure
-            const timeRows = Array.from(flightElement.querySelectorAll('[role="row"]'));
+            const timeRows = Array.from(
+              flightElement.querySelectorAll('[role="row"]'),
+            );
 
             // Process each row that might contain flight times
             for (const row of timeRows) {
               const timeElements = Array.from(row.querySelectorAll("div, span"))
-                .filter(el => /^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(el.textContent?.trim() || ""))
-                .map(el => el.textContent?.trim() || "");
+                .filter((el) =>
+                  /^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(
+                    el.textContent?.trim() || "",
+                  ),
+                )
+                .map((el) => el.textContent?.trim() || "");
 
               if (timeElements.length >= 2) {
                 // The first time is typically departure, second is arrival
@@ -463,16 +547,23 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           // Third pass: Fallback to simpler approaches if still missing times
           if (!departureTime || !arrivalTime) {
             // Find all time elements across the flight element
-            const allTimeElements = Array.from(flightElement.querySelectorAll("div, span"))
-              .filter(el => /^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(el.textContent?.trim() || ""))
-              .map(el => el.textContent?.trim() || "");
+            const allTimeElements = Array.from(
+              flightElement.querySelectorAll("div, span"),
+            )
+              .filter((el) =>
+                /^\d{1,2}:\d{2}\s*(?:AM|PM)$/.test(
+                  el.textContent?.trim() || "",
+                ),
+              )
+              .map((el) => el.textContent?.trim() || "");
 
             // If we have at least two distinct times, use the first as departure and last as arrival
             const uniqueTimes = [...new Set(allTimeElements)];
 
             if (uniqueTimes.length >= 2) {
               if (!departureTime) departureTime = uniqueTimes[0];
-              if (!arrivalTime) arrivalTime = uniqueTimes[uniqueTimes.length - 1];
+              if (!arrivalTime)
+                arrivalTime = uniqueTimes[uniqueTimes.length - 1];
             } else if (uniqueTimes.length === 1) {
               // If only one time found, use it for departure and calculate arrival based on duration
               if (!departureTime) departureTime = uniqueTimes[0];
@@ -487,13 +578,17 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             const duration = extractDuration(flightElement);
             if (duration) {
               // Parse the duration to calculate an estimated arrival time
-              const durationMatch = duration.match(/(\d+)\s*hr(?:\s*(\d+)\s*min)?/);
+              const durationMatch = duration.match(
+                /(\d+)\s*hr(?:\s*(\d+)\s*min)?/,
+              );
               if (durationMatch) {
                 const hours = parseInt(durationMatch[1], 10);
-                const minutes = durationMatch[2] ? parseInt(durationMatch[2], 10) : 0;
+                const minutes = durationMatch[2]
+                  ? parseInt(durationMatch[2], 10)
+                  : 0;
 
                 // For simplicity, just note that arrival is later by the duration
-                arrivalTime = `${departureTime} + ${hours}h${minutes > 0 ? minutes + 'm' : ''}`;
+                arrivalTime = `${departureTime} + ${hours}h${minutes > 0 ? minutes + "m" : ""}`;
               }
             }
           }
@@ -504,7 +599,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         // Extract flight duration
         function extractDuration(flightElement) {
           // Look for duration pattern (e.g., "2 hr 30 min")
-          for (const el of Array.from(flightElement.querySelectorAll("div, span"))) {
+          for (const el of Array.from(
+            flightElement.querySelectorAll("div, span"),
+          )) {
             const text = el.textContent?.trim() || "";
             if (/^\d+\s*hr(\s*\d+\s*min)?$/.test(text)) {
               return text;
@@ -516,7 +613,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
         // Extract number of stops
         function extractStops(flightElement) {
-          for (const el of Array.from(flightElement.querySelectorAll("div, span"))) {
+          for (const el of Array.from(
+            flightElement.querySelectorAll("div, span"),
+          )) {
             const text = el.textContent?.trim() || "";
 
             if (text === "Nonstop") {
@@ -542,7 +641,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
           // Method 1: Try to find codes in aria-labels (most reliable)
           const flightDetailsElements = Array.from(
-            flightElement.querySelectorAll("[aria-label*='airport'], [aria-label*='leaves'], [aria-label*='arrives']")
+            flightElement.querySelectorAll(
+              "[aria-label*='airport'], [aria-label*='leaves'], [aria-label*='arrives']",
+            ),
           );
 
           for (const element of flightDetailsElements) {
@@ -571,7 +672,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
               if (airportCodes && airportCodes.length >= 2) {
                 // Filter out airline codes
-                const filteredCodes = airportCodes.filter(code => !airlineCodes.includes(code));
+                const filteredCodes = airportCodes.filter(
+                  (code) => !airlineCodes.includes(code),
+                );
 
                 if (filteredCodes.length >= 2) {
                   origin = filteredCodes[0];
@@ -585,8 +688,8 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           // Method 2: Look for elements with single airport codes in sequence
           if (!origin || !destination) {
             const codeElements = Array.from(
-              flightElement.querySelectorAll("div, span")
-            ).filter(el => {
+              flightElement.querySelectorAll("div, span"),
+            ).filter((el) => {
               const text = el.textContent?.trim() || "";
               return /^[A-Z]{3}$/.test(text) && !airlineCodes.includes(text);
             });
@@ -610,10 +713,15 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
               // This indicates a likely extraction error
               // Use other airport codes if available
               const allAirportCodes = Array.from(
-                flightElement.querySelectorAll("div, span")
+                flightElement.querySelectorAll("div, span"),
               )
-                .map(el => el.textContent?.trim())
-                .filter(text => text && /^[A-Z]{3}$/.test(text) && !airlineCodes.includes(text));
+                .map((el) => el.textContent?.trim())
+                .filter(
+                  (text) =>
+                    text &&
+                    /^[A-Z]{3}$/.test(text) &&
+                    !airlineCodes.includes(text),
+                );
 
               // If we have multiple distinct codes, use the first and last
               const uniqueCodes = [...new Set(allAirportCodes)];
@@ -630,13 +738,17 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
         // Extract details from a flight element
         function extractFlightDetails(flightElement) {
           // Skip "View more flights" button if present
-          if (flightElement.querySelector('button[aria-label*="View more flights"]')) {
+          if (
+            flightElement.querySelector(
+              'button[aria-label*="View more flights"]',
+            )
+          ) {
             return null;
           }
 
           // Extract price
           const priceElement = flightElement.querySelector(
-            'span[data-gs][aria-label*="US dollars"], span[aria-label*="US dollars"]'
+            'span[data-gs][aria-label*="US dollars"], span[aria-label*="US dollars"]',
           );
 
           let price = 0;
@@ -687,7 +799,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             stops,
             origin,
             destination,
-            isTopFlight: false // Will be set by the caller
+            isTopFlight: false, // Will be set by the caller
           };
         }
 
@@ -696,10 +808,12 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
         for (const header of headers) {
           const headerText = header.textContent || "";
-          const isTopSection = headerText.includes("Top departing flights") ||
-                             headerText.includes("Best departing flights");
+          const isTopSection =
+            headerText.includes("Top departing flights") ||
+            headerText.includes("Best departing flights");
 
-          const region = header.closest('[role="region"]') || header.parentElement;
+          const region =
+            header.closest('[role="region"]') || header.parentElement;
 
           if (!region) continue;
 
@@ -717,7 +831,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             });
             foundAnyFlights = true;
             console.debug(
-              `Found ${flightElements.length} flights near header "${headerText}" (isTop: ${isTopSection})`
+              `Found ${flightElements.length} flights near header "${headerText}" (isTop: ${isTopSection})`,
             );
           }
         }
@@ -733,7 +847,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
               elements: flightElements,
             });
             console.debug(
-              `Found ${flightElements.length} flights using direct page search`
+              `Found ${flightElements.length} flights using direct page search`,
             );
           }
         }
@@ -746,12 +860,15 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
               role: el.getAttribute("role"),
               isTop: isTopSection,
               count: elements.length,
-            })
-          )
+            }),
+          ),
         );
 
         // Process each flight using the extraction functions
-        for (const [_, { isTopSection, elements }] of flightSections.entries()) {
+        for (const [
+          _,
+          { isTopSection, elements },
+        ] of flightSections.entries()) {
           for (const flightElement of elements) {
             try {
               // Extract all details from the flight element
@@ -786,7 +903,11 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       if (!text) return true;
 
       // Check for date patterns
-      if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}/.test(text)) {
+      if (
+        /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}/.test(
+          text,
+        )
+      ) {
         return true;
       }
 
@@ -828,7 +949,7 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       if (!airlines || !airlines.length) return [];
 
       // Step 1: First-pass normalization
-      const normalized = airlines.flatMap(airline => {
+      const normalized = airlines.flatMap((airline) => {
         if (!airline) return [];
 
         // Handle "Operated by X" pattern
@@ -838,7 +959,10 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
 
         // Split comma-separated entries
         if (airline.includes(",")) {
-          return airline.split(",").map(part => part.trim()).filter(Boolean);
+          return airline
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean);
         }
 
         return airline.trim();
@@ -864,7 +988,11 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
             const existingWords = existing.split(/\s+/).length;
             const nameWords = name.split(/\s+/).length;
 
-            if (nameWords === 1 && existingWords > 1 && existing.includes(name)) {
+            if (
+              nameWords === 1 &&
+              existingWords > 1 &&
+              existing.includes(name)
+            ) {
               // Keep the full name when the shorter is just an abbreviation
               // e.g., keep "ANA Wings" over just "ANA"
             } else if (name.length < existing.length) {
@@ -880,8 +1008,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
           const existingWords = new Set(existing.split(/\s+/));
 
           // If there's a significant word overlap, consider them related
-          const intersection = [...nameWords].filter(word =>
-            existingWords.has(word) && word.length > 2); // Only consider words longer than 2 chars
+          const intersection = [...nameWords].filter(
+            (word) => existingWords.has(word) && word.length > 2,
+          ); // Only consider words longer than 2 chars
 
           if (intersection.length > 0) {
             // Generally prefer the shorter name unless it's just an abbreviation
@@ -909,7 +1038,9 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
     let processedFlights = flights.map((flight) => {
       // Clean up airlines array to ensure it only contains actual airlines
       let cleanedAirlines = Array.isArray(flight.airlines)
-        ? flight.airlines.filter(airline => airline && !isAirportOrDate(airline))
+        ? flight.airlines.filter(
+            (airline) => airline && !isAirportOrDate(airline),
+          )
         : [];
 
       // Process airline names to remove duplicates and standardize
@@ -919,7 +1050,10 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
       return {
         ...flight,
         airlines: cleanedAirlines,
-        formattedRoute: formatFlightRoute({...flight, airlines: cleanedAirlines}),
+        formattedRoute: formatFlightRoute({
+          ...flight,
+          airlines: cleanedAirlines,
+        }),
         formattedTimings: formatFlightTimings(flight),
         formattedPrice: `$${flight.price}`,
       };
@@ -928,11 +1062,13 @@ export async function scrapeFlightPrices(page: Page): Promise<FlightData[]> {
     // Remove duplicate flights by comparing key properties
     processedFlights = deduplicateFlights(processedFlights);
 
-    console.info(`Found ${processedFlights.length} unique flights after deduplication`);
+    console.info(
+      `Found ${processedFlights.length} unique flights after deduplication`,
+    );
     return processedFlights;
   } catch (error) {
     console.error(
-      `Error scraping flight prices: ${error instanceof Error ? error.message : String(error)}`
+      `Error scraping flight prices: ${error instanceof Error ? error.message : String(error)}`,
     );
     return [];
   }

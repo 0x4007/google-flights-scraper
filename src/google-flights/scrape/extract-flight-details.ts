@@ -8,7 +8,9 @@ import { extractTimes } from "./extract-times";
 
 // Main function to extract flight details
 
-export function extractFlightDetails(flightElement: Element): FlightData | null {
+export function extractFlightDetails(
+  flightElement: Element,
+): FlightData | null {
   // Skip "View more flights" button if present
   if (flightElement.querySelector('button[aria-label="View more flights"]')) {
     return null;
@@ -16,7 +18,7 @@ export function extractFlightDetails(flightElement: Element): FlightData | null 
 
   // Extract price
   const priceElement = flightElement.querySelector(
-    'span[data-gs][aria-label$="US dollars"], span[aria-label$="US dollars"]'
+    'span[data-gs][aria-label$="US dollars"], span[aria-label$="US dollars"]',
   );
   const price = extractPrice(priceElement);
 

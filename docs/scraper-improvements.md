@@ -14,6 +14,7 @@ The Google Flights scraper has been improved to fix several key issues:
 ### 1. Enhanced Airline Detection
 
 - **Multiple Detection Methods**:
+
   - Logo-based detection using `img` tags with airline-related `alt` text
   - Aria-label pattern matching for accessibility text containing airline info
   - Deep DOM traversal to find airline names in nested text nodes
@@ -28,6 +29,7 @@ The Google Flights scraper has been improved to fix several key issues:
 ### 2. Fixed Airport Code Extraction
 
 - **Improved Pattern Matching**:
+
   - Better regex patterns for extracting airport codes from aria-labels
   - Added filtering to prevent airline codes being mistaken for airport codes
   - Added validation to ensure origin and destination aren't the same
@@ -40,6 +42,7 @@ The Google Flights scraper has been improved to fix several key issues:
 ### 3. Enhanced Data Formatting
 
 - **Better Route Formatting**:
+
   - Improved display of flight routes with proper airport codes
   - Added fallback for missing or invalid origin/destination
 
@@ -50,6 +53,7 @@ The Google Flights scraper has been improved to fix several key issues:
 ### 4. Deduplication & Data Cleaning
 
 - **Flight Deduplication**:
+
   - Added key-based deduplication to filter out identical flights
   - Uses combination of price, route, and timing information
 

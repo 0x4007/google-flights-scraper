@@ -9,9 +9,9 @@
     "dev": "bun --watch run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --return 2024-04-15",
     "screenshot": "bun run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --return 2024-04-15",
     "iterate": "bun --watch run src/index.ts --from Seoul --to Tokyo --departure 2024-04-01 --return 2024-04-15",
-    "test": "bun scripts/run-random-tests.ts --count 3",
-    "test:single": "bun scripts/run-random-tests.ts --count 1",
-    "test:many": "bun scripts/run-random-tests.ts --count 10",
+    "test": "bun .github/scripts/run-random-tests.ts --count 3",
+    "test:single": "bun .github/scripts/run-random-tests.ts --count 1",
+    "test:many": "bun .github/scripts/run-random-tests.ts --count 10",
     "format": "run-s format:*",
     "format:lint": "eslint --fix .",
     "format:prettier": "prettier --write .",
@@ -28,6 +28,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "airport-codes": "^1.0.2",
     "prettier": "^3.5.3",
     "puppeteer": "^22.3.0"
   },

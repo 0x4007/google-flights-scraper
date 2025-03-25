@@ -1,10 +1,9 @@
 import { getText } from "./get-text";
 
-
 export function extractStops(flightElement: Element): number {
   // First try with aria-label approach (traditional)
   const stopsElement = flightElement.querySelector(
-    'span[aria-label="Nonstop flight."], span[aria-label$="stop flight."]'
+    'span[aria-label="Nonstop flight."], span[aria-label$="stop flight."]',
   );
   if (stopsElement) {
     const stopsText = stopsElement.getAttribute("aria-label") ?? null;
@@ -29,7 +28,7 @@ export function extractStops(flightElement: Element): number {
 
   // First check for "Nonstop"
   const nonstopDiv = divElements.find(
-    (div) => getText(div)?.trim() === "Nonstop"
+    (div) => getText(div)?.trim() === "Nonstop",
   );
   if (nonstopDiv) return 0;
 

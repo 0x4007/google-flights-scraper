@@ -6,42 +6,58 @@
 
 import fs from "fs";
 import path from "path";
-import { applyAllianceFilters } from "../src/google-flights/filter/alliance-filter-handler";
-import { navigateToFlights } from "../src/google-flights/page-navigation";
-import { scrapeFlightPrices } from "../src/google-flights/scrape/scrape-flight-prices";
-import { FlightSearchParameters } from "../src/types";
-import { generateMultipleRandomParameters, logGeneratedParameters } from "../src/utils/generate-random-parameters";
-import { launchBrowser } from "../src/utils/launch";
-import { parseArgs } from "../src/utils/parse-args";
-import { captureAndSaveScreenshot } from "../src/utils/take-screenshot";
+import { applyAllianceFilters } from "../../src/google-flights/filter/alliance-filter-handler";
+import { navigateToFlights } from "../../src/google-flights/page-navigation";
+import { scrapeFlightPrices } from "../../src/google-flights/scrape/scrape-flight-prices";
+import { FlightSearchParameters } from "../../src/types";
+import {
+  generateMultipleRandomParameters,
+  logGeneratedParameters,
+} from "../../src/utils/generate-random-parameters";
+import { launchBrowser } from "../../src/utils/launch";
+import { parseArgs } from "../../src/utils/parse-args";
+import { captureAndSaveScreenshot } from "../../src/utils/take-screenshot";
 
-// Default test count
-const DEFAULT_TEST_COUNT = 3;
+interface TestMetadata {
+  iteration: number;
+  gitCommit: string;
+  timestamp: number;
+  success: boolean;
+}
+
+// Add metadata to global scope
+declare global {
+  var testMetadata: TestMetadata | undefined;
+}
 
 // Command line argument parsing
-async function parseRunOptions(): Promise<{ testCount: number; useExactParams?: FlightSearchParameters }> {
+async function parseRunOptions(): Promise<{
+  testCount: number;
+  useExactParams?: FlightSearchParameters;
+}> {
   const args = process.argv.slice(2);
-  let testCount = DEFAULT_TEST_COUNT;
-
-  // Extract test count from command line args if present
   const testCountIndex = args.indexOf("--count");
-  if (testCountIndex !== -1 && testCountIndex + 1 < args.length) {
-    const count = parseInt(args[testCountIndex + 1], 10);
-    if (!isNaN(count) && count > 0) {
-      testCount = count;
-    }
-  }
+  // Default to 1 test per job - concurrency handled by GitHub Actions matrix
+  const testCount = testCountIndex !== -1 && testCountIndex + 1 < args.length
+    ? Math.max(1, parseInt(args[testCountIndex + 1], 10) || 1)
+    : 1;
 
   // If any standard flight search parameters are provided, try to use them
   try {
     // Only attempt to parse if we find at least one key parameter
-    if (args.some(arg => ["--from", "--to", "--departure", "--return"].includes(arg))) {
+    if (
+      args.some((arg) =>
+        ["--from", "--to", "--departure", "--return"].includes(arg),
+      )
+    ) {
       const params = parseArgs(args);
       return { testCount: 1, useExactParams: params };
     }
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.log(`No valid flight parameters found: ${errorMessage}, using random parameters instead.`);
+    console.log(
+      `No valid flight parameters found: ${errorMessage}, using random parameters instead.`,
+    );
   }
 
   return { testCount };
@@ -52,7 +68,10 @@ async function parseRunOptions(): Promise<{ testCount: number; useExactParams?: 
  * @param parameters Flight search parameters
  * @param testIndex Index of this test in the batch
  */
-async function runFlightTest(parameters: FlightSearchParameters, testIndex: number): Promise<void> {
+async function runFlightTest(
+  parameters: FlightSearchParameters,
+  testIndex: number,
+): Promise<void> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const testId = `test-${testIndex + 1}-${timestamp}`;
 
@@ -72,7 +91,7 @@ async function runFlightTest(parameters: FlightSearchParameters, testIndex: numb
     // Save test parameters to JSON file
     fs.writeFileSync(
       path.join(testDir, "parameters.json"),
-      JSON.stringify(parameters, null, 2)
+      JSON.stringify(parameters, null, 2),
     );
 
     try {
@@ -83,7 +102,7 @@ async function runFlightTest(parameters: FlightSearchParameters, testIndex: numb
       // Take a screenshot after initial navigation
       await page.screenshot({
         path: path.join(testDir, "initial-results.png"),
-        fullPage: false
+        fullPage: false,
       });
 
       // Apply alliance filters
@@ -91,12 +110,12 @@ async function runFlightTest(parameters: FlightSearchParameters, testIndex: numb
       await applyAllianceFilters(page);
 
       // Wait for results to stabilize
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // Take a screenshot after filters
       await page.screenshot({
         path: path.join(testDir, "filtered-results.png"),
-        fullPage: false
+        fullPage: false,
       });
 
       // Scrape flight data
@@ -106,41 +125,52 @@ async function runFlightTest(parameters: FlightSearchParameters, testIndex: numb
       // Save flight data to JSON file
       fs.writeFileSync(
         path.join(testDir, "flight-data.json"),
-        JSON.stringify(flightData, null, 2)
+        JSON.stringify(flightData, null, 2),
       );
 
       // Log results summary
       console.log(`Found ${flightData.length} flights after processing`);
       if (flightData.length > 0) {
-        console.log(`Lowest price: ${flightData.reduce((min, flight) =>
-          flight.price < min ? flight.price : min, flightData[0].price)}`);
+        console.log(
+          `Lowest price: ${flightData.reduce(
+            (min, flight) => (flight.price < min ? flight.price : min),
+            flightData[0].price,
+          )}`,
+        );
       }
 
       // Take final screenshot
-      await captureAndSaveScreenshot(page, parameters, path.join(testDir, "final-results.png"));
+      await captureAndSaveScreenshot(
+        page,
+        parameters,
+        path.join(testDir, "final-results.png"),
+      );
       console.log(`✅ Test #${testIndex + 1} completed successfully`);
 
+      if (global.testMetadata?.success === false) {
+        throw new Error("Test failed due to metadata success=false");
+      }
       return Promise.resolve();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error(`❌ Error in test #${testIndex + 1}:`, errorMessage);
 
       // Take error screenshot if possible
       try {
         await page.screenshot({
           path: path.join(testDir, "error-state.png"),
-          fullPage: false
+          fullPage: false,
         });
-        console.log(`📸 Error screenshot saved to ${path.join(testDir, "error-state.png")}`);
+        console.log(
+          `📸 Error screenshot saved to ${path.join(testDir, "error-state.png")}`,
+        );
       } catch (screenshotError) {
         console.error("Could not take error screenshot:", screenshotError);
       }
 
       // Write error to file
-      fs.writeFileSync(
-        path.join(testDir, "error.txt"),
-        String(error)
-      );
+      fs.writeFileSync(path.join(testDir, "error.txt"), String(error));
 
       return Promise.reject(error);
     }
@@ -154,6 +184,14 @@ async function runFlightTest(parameters: FlightSearchParameters, testIndex: numb
  * Main function to run tests
  */
 async function main() {
+  // Initialize metadata with success=true
+  global.testMetadata = {
+    iteration: 0,
+    gitCommit: process.env.GITHUB_SHA || "unknown",
+    timestamp: Date.now(),
+    success: true
+  };
+
   console.log("🚀 Flight Scraper Random Test Runner");
 
   try {
@@ -190,7 +228,11 @@ async function main() {
         passed++;
       } catch (error: unknown) {
         failed++;
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (global.testMetadata) {
+          global.testMetadata.success = false;
+        }
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         console.error(`Test #${i + 1} failed:`, errorMessage);
       }
     }
@@ -201,13 +243,22 @@ async function main() {
     console.log(`Passed: ${passed}`);
     console.log(`Failed: ${failed}`);
 
-    // Exit with error code if any tests failed
-    if (failed > 0) {
+    // Process metadata if available
+    if (global.testMetadata) {
+      console.log("\nMetadata Status:", global.testMetadata.success ? "✅ Success" : "❌ Failed");
+    }
+
+    // Exit with error code if any tests failed or metadata indicates failure
+    if (failed > 0 || global.testMetadata?.success === false) {
+      console.error("Test run failed - Exiting with error code 1");
       process.exit(1);
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error in test runner:", errorMessage);
+    if (global.testMetadata) {
+      global.testMetadata.success = false;
+    }
     process.exit(1);
   }
 }

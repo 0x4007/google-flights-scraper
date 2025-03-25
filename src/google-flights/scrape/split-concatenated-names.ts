@@ -1,4 +1,3 @@
-
 export function splitConcatenatedNames(text: string): string[] {
   if (!text) return [];
 

@@ -51,7 +51,10 @@ export async function navigateToFlights(
 
   // Capture DOM structure again after scraping
   console.log("Capturing DOM structure after scraping...");
-  const postScrapeStructureFile = await captureDOMStructure(page, "post-scrape");
+  const postScrapeStructureFile = await captureDOMStructure(
+    page,
+    "post-scrape",
+  );
   console.log(`Post-scrape DOM structure saved to: ${postScrapeStructureFile}`);
 
   // Record result in the genetic algorithm manager
