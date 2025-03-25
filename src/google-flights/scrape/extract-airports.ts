@@ -1,4 +1,3 @@
-
 export function extractAirports(flightElement: Element): {
   origin: string | null;
   destination: string | null;
@@ -9,20 +8,42 @@ export function extractAirports(flightElement: Element): {
   // Known airport codes to ensure we don't mix with airline codes
   const COMMON_AIRPORT_CODES = new Set([
     // Seoul airports
-    "ICN", "GMP",
+    "ICN",
+    "GMP",
     // Tokyo airports
-    "HND", "NRT",
+    "HND",
+    "NRT",
     // Other major airport codes
-    "JFK", "LGA", "LAX", "SFO", "ORD", "PEK", "PVG", "CDG", "LHR", "FRA"
+    "JFK",
+    "LGA",
+    "LAX",
+    "SFO",
+    "ORD",
+    "PEK",
+    "PVG",
+    "CDG",
+    "LHR",
+    "FRA",
   ]);
 
   // Known airlines that might be confused as airport codes
-  const AIRLINE_CODES = new Set(["ANA", "JAL", "KAL", "KLM", "LUF", "UAL", "AAL", "DAL"]);
+  const AIRLINE_CODES = new Set([
+    "ANA",
+    "JAL",
+    "KAL",
+    "KLM",
+    "LUF",
+    "UAL",
+    "AAL",
+    "DAL",
+  ]);
 
   // ----- ARIA Label Approach: Look for airport codes in detailed aria-labels -----
   // This is often the most reliable way as it contains the full flight details
   const flightDetailsElements = Array.from(
-    flightElement.querySelectorAll("[aria-label*='airport'], [aria-label*='leaves'], [aria-label*='arrives']")
+    flightElement.querySelectorAll(
+      "[aria-label*='airport'], [aria-label*='leaves'], [aria-label*='arrives']",
+    ),
   );
 
   for (const element of flightDetailsElements) {
@@ -34,14 +55,19 @@ export function extractAirports(flightElement: Element): {
 
     if (airportCodeMatches && airportCodeMatches.length >= 2) {
       // Filter out any airline codes
-      const filteredCodes = airportCodeMatches.filter(code => !AIRLINE_CODES.has(code));
+      const filteredCodes = airportCodeMatches.filter(
+        (code) => !AIRLINE_CODES.has(code),
+      );
 
       if (filteredCodes.length >= 2) {
         origin = filteredCodes[0];
         destination = filteredCodes[1];
 
         // If we found common airport codes, prefer those
-        if (COMMON_AIRPORT_CODES.has(origin) && COMMON_AIRPORT_CODES.has(destination)) {
+        if (
+          COMMON_AIRPORT_CODES.has(origin) &&
+          COMMON_AIRPORT_CODES.has(destination)
+        ) {
           break;
         }
       }
@@ -49,10 +75,15 @@ export function extractAirports(flightElement: Element): {
   }
 
   // ----- Look for specific mentions of airports in the flight details -----
-  if (!origin || !destination || AIRLINE_CODES.has(origin) || AIRLINE_CODES.has(destination)) {
+  if (
+    !origin ||
+    !destination ||
+    AIRLINE_CODES.has(origin) ||
+    AIRLINE_CODES.has(destination)
+  ) {
     // Try to extract from specific aria-label patterns that mention airports directly
     const airportMentionsElements = Array.from(
-      flightElement.querySelectorAll("[aria-label*='International Airport']")
+      flightElement.querySelectorAll("[aria-label*='International Airport']"),
     );
 
     for (const element of airportMentionsElements) {
@@ -60,19 +91,23 @@ export function extractAirports(flightElement: Element): {
 
       // Look for airport codes near airport names
       const airportMatches = [
-        ...(ariaLabel.match(/Incheon International Airport.*?\b([A-Z]{3})\b/g) || []),
-        ...(ariaLabel.match(/Gimpo International Airport.*?\b([A-Z]{3})\b/g) || []),
+        ...(ariaLabel.match(
+          /Incheon International Airport.*?\b([A-Z]{3})\b/g,
+        ) || []),
+        ...(ariaLabel.match(/Gimpo International Airport.*?\b([A-Z]{3})\b/g) ||
+          []),
         ...(ariaLabel.match(/Haneda Airport.*?\b([A-Z]{3})\b/g) || []),
-        ...(ariaLabel.match(/Narita International Airport.*?\b([A-Z]{3})\b/g) || [])
+        ...(ariaLabel.match(/Narita International Airport.*?\b([A-Z]{3})\b/g) ||
+          []),
       ];
 
       // Extract just the code from each match
       const extractedCodes = airportMatches
-        .map(match => {
+        .map((match) => {
           const codeMatch = match.match(/\b([A-Z]{3})\b/);
           return codeMatch ? codeMatch[1] : null;
         })
-        .filter(code => code && !AIRLINE_CODES.has(code)) as string[];
+        .filter((code) => code && !AIRLINE_CODES.has(code)) as string[];
 
       if (extractedCodes.length >= 2) {
         origin = extractedCodes[0];
@@ -83,13 +118,18 @@ export function extractAirports(flightElement: Element): {
   }
 
   // ----- DOM Structure Approach: Look at specific elements in the DOM -----
-  if (!origin || !destination || AIRLINE_CODES.has(origin) || AIRLINE_CODES.has(destination)) {
+  if (
+    !origin ||
+    !destination ||
+    AIRLINE_CODES.has(origin) ||
+    AIRLINE_CODES.has(destination)
+  ) {
     // Extract airport codes from text content
     const allCodes = extractAllAirportCodes(flightElement);
 
     // Filter for known airport codes
-    const validAirportCodes = allCodes.filter(code =>
-      COMMON_AIRPORT_CODES.has(code) && !AIRLINE_CODES.has(code)
+    const validAirportCodes = allCodes.filter(
+      (code) => COMMON_AIRPORT_CODES.has(code) && !AIRLINE_CODES.has(code),
     );
 
     if (validAirportCodes.length >= 2) {
@@ -97,7 +137,9 @@ export function extractAirports(flightElement: Element): {
       destination = validAirportCodes[1];
     } else if (allCodes.length >= 2) {
       // If no known airport codes, try using the first pair that aren't airline codes
-      const nonAirlineCodes = allCodes.filter(code => !AIRLINE_CODES.has(code));
+      const nonAirlineCodes = allCodes.filter(
+        (code) => !AIRLINE_CODES.has(code),
+      );
       if (nonAirlineCodes.length >= 2) {
         origin = nonAirlineCodes[0];
         destination = nonAirlineCodes[1];
@@ -106,7 +148,12 @@ export function extractAirports(flightElement: Element): {
   }
 
   // ----- Fallback to direct DOM context extraction -----
-  if (!origin || !destination || AIRLINE_CODES.has(origin) || AIRLINE_CODES.has(destination)) {
+  if (
+    !origin ||
+    !destination ||
+    AIRLINE_CODES.has(origin) ||
+    AIRLINE_CODES.has(destination)
+  ) {
     // Find locations in the flight card structure
     const locationNames = extractLocationNamesFromDOM(flightElement);
 
@@ -123,19 +170,29 @@ export function extractAirports(flightElement: Element): {
   }
 
   // Final fallback - use most likely default values for Seoul-Tokyo routes
-  if ((!origin || !destination || origin === destination ||
-       AIRLINE_CODES.has(origin) || AIRLINE_CODES.has(destination))) {
-
+  if (
+    !origin ||
+    !destination ||
+    origin === destination ||
+    AIRLINE_CODES.has(origin) ||
+    AIRLINE_CODES.has(destination)
+  ) {
     // Check what we have and try to set missing/invalid values
     // Assume Seoul-Tokyo route as default fallback
 
     // If both are invalid, set to defaults
-    if (AIRLINE_CODES.has(origin as string) && AIRLINE_CODES.has(destination as string)) {
+    if (
+      AIRLINE_CODES.has(origin as string) &&
+      AIRLINE_CODES.has(destination as string)
+    ) {
       origin = "ICN";
       destination = "NRT";
     }
     // If only origin is invalid, set destination based on origin
-    else if (AIRLINE_CODES.has(origin as string) && !AIRLINE_CODES.has(destination as string)) {
+    else if (
+      AIRLINE_CODES.has(origin as string) &&
+      !AIRLINE_CODES.has(destination as string)
+    ) {
       if (destination === "ICN" || destination === "GMP") {
         origin = "NRT";
       } else {
@@ -143,7 +200,10 @@ export function extractAirports(flightElement: Element): {
       }
     }
     // If only destination is invalid, set destination based on origin
-    else if (!AIRLINE_CODES.has(origin as string) && AIRLINE_CODES.has(destination as string)) {
+    else if (
+      !AIRLINE_CODES.has(origin as string) &&
+      AIRLINE_CODES.has(destination as string)
+    ) {
       if (origin === "ICN" || origin === "GMP") {
         destination = "NRT";
       } else {
@@ -174,22 +234,30 @@ export function extractAirports(flightElement: Element): {
 // Helper function to extract all airport codes from the flight element
 function extractAllAirportCodes(flightElement: Element): string[] {
   return Array.from(flightElement.querySelectorAll("div, span"))
-    .map(el => {
+    .map((el) => {
       const text = el.textContent?.trim() || "";
       const match = text.match(/^[A-Z]{3}$/);
       return match ? text : null;
     })
-    .filter(code => code !== null) as string[];
+    .filter((code) => code !== null) as string[];
 }
 
 // Helper to extract location names from the flight element
 function extractLocationNamesFromDOM(flightElement: Element): string[] {
   const locationKeywords = [
-    "Seoul", "Tokyo", "Incheon", "Narita", "Haneda", "Gimpo",
-    "International Airport", "Airport"
+    "Seoul",
+    "Tokyo",
+    "Incheon",
+    "Narita",
+    "Haneda",
+    "Gimpo",
+    "International Airport",
+    "Airport",
   ];
 
   return Array.from(flightElement.querySelectorAll("div, span"))
-    .map(el => el.textContent?.trim() || "")
-    .filter(text => locationKeywords.some(keyword => text.includes(keyword)));
+    .map((el) => el.textContent?.trim() || "")
+    .filter((text) =>
+      locationKeywords.some((keyword) => text.includes(keyword)),
+    );
 }

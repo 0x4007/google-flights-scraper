@@ -429,6 +429,6 @@ export async function evaluatePageFunction<T>(
       }
     },
     functionName,
-    ...args
+    ...args,
   );
 }

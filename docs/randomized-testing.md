@@ -82,6 +82,7 @@ The matrix-based workflow runs automatically on push and pull requests. You can 
 Each test run produces:
 
 1. **Screenshots**: Multiple screenshots are taken during the test:
+
    - Initial results page
    - Results after applying filters
    - Final state of the page

@@ -4,23 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       start_dates:
-        description: 'List of start dates (one per line)'
+        description: "List of start dates (one per line)"
         required: true
         type: string
       end_dates:
-        description: 'List of end dates (one per line), blank = same as start date'
+        description: "List of end dates (one per line), blank = same as start date"
         required: false
         type: string
-        default: ''
+        default: ""
       locations:
-        description: 'List of locations (one per line)'
+        description: "List of locations (one per line)"
         required: true
         type: string
       prices:
-        description: 'List of prices (one per line), blank = 0'
+        description: "List of prices (one per line), blank = 0"
         required: false
         type: string
-        default: ''
+        default: ""
 
 jobs:
   setup:
@@ -41,7 +41,7 @@ jobs:
           echo "${{ inputs.prices }}" > prices.txt
 
           # Run processor script
-          matrix=$(bun run src/process-conferences.ts)
+          matrix=$(bun run .github/scripts/process-conferences.ts)
 
           # Set output while escaping newlines and quotes
           matrix="${matrix//'%'/'%25'}"
@@ -76,4 +76,4 @@ jobs:
           echo "Location: $LOCATION"
           echo "Price: $PRICE"
           # Add your actual conference processing logic here
-          bun run src/process-conference.ts
+          bun run .github/scripts/process-conference.ts

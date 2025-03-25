@@ -9,15 +9,17 @@ export function extractAirlineNames(flightElement: Element): string[] {
   const NON_AIRLINE_PATTERNS = [
     /International Airport/i,
     /Airport/i,
-    /\d{1,2}:\d{2}/,    // Time format
-    /(\d{1,2}|[A-Za-z]+),\s+[A-Za-z]+\s+\d{1,2}/,  // Date formats (e.g., "Tue, Apr 1")
+    /\d{1,2}:\d{2}/, // Time format
+    /(\d{1,2}|[A-Za-z]+),\s+[A-Za-z]+\s+\d{1,2}/, // Date formats (e.g., "Tue, Apr 1")
     /\d+ min/,
-    /\d+ hr/
+    /\d+ hr/,
   ];
 
   // Method 1: Extract airlines from aria-labels that mention "operated by" or "with"
   const flightDetailsElements = Array.from(
-    flightElement.querySelectorAll("[aria-label*='flight with'], [aria-label*='operated by']")
+    flightElement.querySelectorAll(
+      "[aria-label*='flight with'], [aria-label*='operated by']",
+    ),
   );
 
   for (const element of flightDetailsElements) {
@@ -25,8 +27,14 @@ export function extractAirlineNames(flightElement: Element): string[] {
 
     // Extract airlines from "flight with X" or "operated by X" patterns
     const airlineMatches = [
-      ...extractAirlineFromPattern(ariaLabel, /flight with ([^,.;]+?)(?=[,.;]|$)/i),
-      ...extractAirlineFromPattern(ariaLabel, /operated by ([^,.;]+?)(?=[,.;]|$)/i)
+      ...extractAirlineFromPattern(
+        ariaLabel,
+        /flight with ([^,.;]+?)(?=[,.;]|$)/i,
+      ),
+      ...extractAirlineFromPattern(
+        ariaLabel,
+        /operated by ([^,.;]+?)(?=[,.;]|$)/i,
+      ),
     ];
 
     for (const airline of airlineMatches) {
@@ -38,7 +46,7 @@ export function extractAirlineNames(flightElement: Element): string[] {
 
   // Method 2: Check for specific airline logo images
   const airlineImages = Array.from(
-    flightElement.querySelectorAll("img[alt*='Airlines'], img[alt*='Air']")
+    flightElement.querySelectorAll("img[alt*='Airlines'], img[alt*='Air']"),
   );
 
   for (const img of airlineImages) {
@@ -54,7 +62,9 @@ export function extractAirlineNames(flightElement: Element): string[] {
 
   // Look for elements after time displays (which usually contain airline info)
   const timeElements = Array.from(
-    flightElement.querySelectorAll("[aria-label*='Departure time'], [aria-label*='Arrival time']")
+    flightElement.querySelectorAll(
+      "[aria-label*='Departure time'], [aria-label*='Arrival time']",
+    ),
   );
 
   for (const timeEl of timeElements) {
@@ -78,7 +88,9 @@ export function extractAirlineNames(flightElement: Element): string[] {
 
   // Broader search for potential airline elements in appropriate DOM positions
   const potentialAirlineElements = Array.from(
-    flightElement.querySelectorAll("div > span, div > div > span, div[role='text']")
+    flightElement.querySelectorAll(
+      "div > span, div > div > span, div[role='text']",
+    ),
   );
 
   for (const el of potentialAirlineElements) {
@@ -87,13 +99,17 @@ export function extractAirlineNames(flightElement: Element): string[] {
 
     // If text is not a non-airline pattern, consider it a potential airline name
     // This more permissive approach will catch airlines like "ITA"
-    const isNotNonAirline = !NON_AIRLINE_PATTERNS.some(pattern => pattern.test(text));
+    const isNotNonAirline = !NON_AIRLINE_PATTERNS.some((pattern) =>
+      pattern.test(text),
+    );
     const isCommonAirlinePattern =
-      /Airlines$/.test(text) ||
-      /Airways$/.test(text) ||
-      text.includes("Air");
+      /Airlines$/.test(text) || /Airways$/.test(text) || text.includes("Air");
 
-    if ((isCommonAirlinePattern || text.length >= 2) && isNotNonAirline && !isNonAirlineText(text)) {
+    if (
+      (isCommonAirlinePattern || text.length >= 2) &&
+      isNotNonAirline &&
+      !isNonAirlineText(text)
+    ) {
       addAirlineName(airlines, text);
     }
   }
@@ -101,7 +117,7 @@ export function extractAirlineNames(flightElement: Element): string[] {
   // Method 4: Extract from specific flight card structure based on DOM analysis
   // Look for the airline div that's specifically in the flight details section
   const flightDetailSections = Array.from(
-    flightElement.querySelectorAll("div[aria-label*='Total duration']")
+    flightElement.querySelectorAll("div[aria-label*='Total duration']"),
   );
 
   for (const section of flightDetailSections) {
@@ -154,23 +170,29 @@ function cleanAirlineList(airlines: string[]): string[] {
   const nonAirlinePatterns = [
     /International Airport/i,
     /Airport$/i,
-    /\d{1,2}\/\d{1,2}/,  // Date patterns like 4/1
-    /^[A-Z][a-z]{2},\s[A-Z][a-z]{2}/i,  // "Mon, Apr"
+    /\d{1,2}\/\d{1,2}/, // Date patterns like 4/1
+    /^[A-Z][a-z]{2},\s[A-Z][a-z]{2}/i, // "Mon, Apr"
     /baggage/i,
     /connection/i,
     /transfer/i,
-    /emissions/i
+    /emissions/i,
   ];
 
   // Filter out unwanted patterns and ensure uniqueness
-  return airlines
-    .filter(name => {
-      // Skip empty or very short strings unless they're known airline codes
-      if (!name || (name.length < 2 && !/^[A-Z]{3}$/.test(name))) return false;
+  return (
+    airlines
+      .filter((name) => {
+        // Skip empty or very short strings unless they're known airline codes
+        if (!name || (name.length < 2 && !/^[A-Z]{3}$/.test(name)))
+          return false;
 
-      // Filter out obvious non-airlines
-      return !nonAirlinePatterns.some(pattern => pattern.test(name)) && !isNonAirlineText(name);
-    })
-    // Ensure uniqueness while preserving order
-    .filter((name, index, self) => self.indexOf(name) === index);
+        // Filter out obvious non-airlines
+        return (
+          !nonAirlinePatterns.some((pattern) => pattern.test(name)) &&
+          !isNonAirlineText(name)
+        );
+      })
+      // Ensure uniqueness while preserving order
+      .filter((name, index, self) => self.indexOf(name) === index)
+  );
 }

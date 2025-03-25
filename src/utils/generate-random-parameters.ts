@@ -23,7 +23,7 @@ const POPULAR_CITY_PAIRS: [string, string][] = [
   ["Madrid", "Barcelona"],
   ["Rome", "Milan"],
   ["Amsterdam", "Paris"],
-  ["Bangkok", "Hong Kong"]
+  ["Bangkok", "Hong Kong"],
 ];
 
 /**
@@ -32,9 +32,14 @@ const POPULAR_CITY_PAIRS: [string, string][] = [
  * @param maxDaysFromNow Maximum days from now
  * @returns Date string in YYYY-MM-DD format
  */
-function generateRandomDate(minDaysFromNow: number, maxDaysFromNow: number): string {
+function generateRandomDate(
+  minDaysFromNow: number,
+  maxDaysFromNow: number,
+): string {
   const now = new Date();
-  const randomDaysToAdd = minDaysFromNow + Math.floor(Math.random() * (maxDaysFromNow - minDaysFromNow));
+  const randomDaysToAdd =
+    minDaysFromNow +
+    Math.floor(Math.random() * (maxDaysFromNow - minDaysFromNow));
 
   const futureDate = new Date(now);
   futureDate.setDate(futureDate.getDate() + randomDaysToAdd);
@@ -52,10 +57,11 @@ function generateRandomDate(minDaysFromNow: number, maxDaysFromNow: number): str
 function generateRandomReturnDate(
   departureDate: string,
   minStayDays: number = 3,
-  maxStayDays: number = 21
+  maxStayDays: number = 21,
 ): string {
   const departureDateObj = new Date(departureDate);
-  const stayDuration = minStayDays + Math.floor(Math.random() * (maxStayDays - minStayDays));
+  const stayDuration =
+    minStayDays + Math.floor(Math.random() * (maxStayDays - minStayDays));
 
   const returnDateObj = new Date(departureDateObj);
   returnDateObj.setDate(departureDateObj.getDate() + stayDuration);
@@ -94,7 +100,7 @@ export function generateRandomParameters(): FlightSearchParameters {
     to,
     departureDate,
     returnDate,
-    includeBudget
+    includeBudget,
   };
 }
 
@@ -103,7 +109,9 @@ export function generateRandomParameters(): FlightSearchParameters {
  * @param count Number of parameter sets to generate
  * @returns Array of FlightSearchParameters objects
  */
-export function generateMultipleRandomParameters(count: number = 5): FlightSearchParameters[] {
+export function generateMultipleRandomParameters(
+  count: number = 5,
+): FlightSearchParameters[] {
   const parameterSets: FlightSearchParameters[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -117,7 +125,9 @@ export function generateMultipleRandomParameters(count: number = 5): FlightSearc
  * Prints the generated parameters to the console in a readable format
  * @param parameters FlightSearchParameters object
  */
-export function logGeneratedParameters(parameters: FlightSearchParameters): void {
+export function logGeneratedParameters(
+  parameters: FlightSearchParameters,
+): void {
   console.log("Generated Flight Search Parameters:");
   console.log("------------------------");
   console.log(`From: ${parameters.from}`);

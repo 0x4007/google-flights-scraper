@@ -13,10 +13,9 @@ export function formatFlightRoute(flight: FlightData): string {
   let airlineText = "Unknown";
   if (Array.isArray(flight.airlines) && flight.airlines.length > 0) {
     // Filter out any null or undefined values
-    const validAirlines = flight.airlines.filter(airline =>
-      airline &&
-      typeof airline === 'string' &&
-      !airline.includes("Airport")
+    const validAirlines = flight.airlines.filter(
+      (airline) =>
+        airline && typeof airline === "string" && !airline.includes("Airport"),
     );
 
     if (validAirlines.length > 0) {

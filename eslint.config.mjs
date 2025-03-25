@@ -5,7 +5,7 @@ import globals from "globals";
 
 export default [
   {
-    ignores: ["src/google-flights/scrape/**/*"]
+    ignores: ["src/google-flights/scrape/**/*"],
   },
   js.configs.recommended,
   {

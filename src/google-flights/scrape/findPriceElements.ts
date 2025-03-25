@@ -1,4 +1,3 @@
-
 /**
  * Returns a function string for finding price elements on the page.
  * This is used within page.waitForFunction to wait until prices appear.

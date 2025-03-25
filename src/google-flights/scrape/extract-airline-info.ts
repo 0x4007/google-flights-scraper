@@ -1,7 +1,6 @@
 import { extractAirlineNames } from "./extract-airline-names";
 import { extractBookingCaution } from "./extract-booking-caution";
 
-
 export function extractAirlineInfo(flightElement: Element): {
   airlines: string[];
   bookingCaution: null | string;

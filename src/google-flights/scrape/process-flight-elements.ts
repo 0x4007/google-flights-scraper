@@ -6,7 +6,7 @@ import { extractFlightDetails } from "./extract-flight-details";
 export function processFlightElements(
   elements: Element[],
   isTopFlight: boolean,
-  flightData: FlightData[]
+  flightData: FlightData[],
 ): void {
   elements.forEach((flightElement) => {
     const flightDetails = extractFlightDetails(flightElement);

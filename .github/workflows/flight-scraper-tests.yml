@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       test_count:
-        description: 'Number of random tests to run per job'
+        description: "Number of random tests to run per job"
         required: false
-        default: '1'
+        default: "1"
         type: number
 
 jobs:
