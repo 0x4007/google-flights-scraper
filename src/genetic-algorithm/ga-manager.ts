@@ -1,10 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import {
-  FlightSearchParameters,
-  FlightSearchResult,
-  GeneticAlgorithmMetadata,
-} from "../types";
+import { FlightSearchParameters, FlightSearchResult, GeneticAlgorithmMetadata } from "../types";
 import { commitChanges, getCurrentGitCommit } from "../utils/git-operations";
 
 /**
@@ -12,31 +8,35 @@ import { commitChanges, getCurrentGitCommit } from "../utils/git-operations";
  */
 export class GeneticAlgorithmManager {
   private currentIteration: number = 0;
-  private logsPath: string;
+  private logsPath: string = "";
   private bestScore: number = Infinity;
+  private enabled: boolean;
 
   constructor() {
-    // Create logs directory if it doesn't exist
-    this.logsPath = path.join(process.cwd(), "logs");
-    fs.mkdirSync(this.logsPath, { recursive: true });
+    this.enabled = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev";
 
-    // Try to load the current iteration from existing logs
-    this.loadCurrentIteration();
+    if (this.enabled) {
+      // Create logs directory if it doesn't exist
+      this.logsPath = path.join(process.cwd(), "logs");
+      fs.mkdirSync(this.logsPath, { recursive: true });
+
+      // Try to load the current iteration from existing logs
+      this.loadCurrentIteration();
+    }
   }
 
   /**
    * Load the current iteration from existing logs
    */
   private loadCurrentIteration(): void {
+    if (!this.enabled) return;
+
     try {
       const files = fs.readdirSync(this.logsPath);
 
       // Filter for flight result json files and extract iteration numbers
       const iterations = files
-        .filter(
-          (file) =>
-            file.startsWith("flight-iteration-") && file.endsWith(".json"),
-        )
+        .filter((file) => file.startsWith("flight-iteration-") && file.endsWith(".json"))
         .map((file) => {
           const match = file.match(/flight-iteration-(\d+)/);
           return match ? parseInt(match[1], 10) : 0;
@@ -73,31 +73,31 @@ export class GeneticAlgorithmManager {
    * @param flightData The flight data results
    * @returns The full flight search result with metadata
    */
-  public async recordResult(
-    parameters: FlightSearchParameters,
-    flightData: FlightSearchResult["results"],
-  ): Promise<FlightSearchResult> {
-    // Calculate score
-    // const score = this.calculateScore(flightData);
+  public async recordResult(parameters: FlightSearchParameters, flightData: FlightSearchResult["results"]): Promise<FlightSearchResult> {
     const success = flightData.length > 0;
 
-    // Only perform git operations if we're in development mode (not on GitHub Actions)
-    const isDev =
-      process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev";
-    let gitCommit = "none";
+    if (!this.enabled) {
+      return {
+        parameters,
+        metadata: {
+          iteration: 0,
+          gitCommit: "disabled",
+          timestamp: Date.now(),
+          success,
+        },
+        results: flightData,
+      };
+    }
 
-    if (success && isDev) {
+    // Only perform git operations in development mode
+    let gitCommit = "none";
+    if (success) {
       try {
         gitCommit = await getCurrentGitCommit();
-        const commitResult = await commitChanges(
-          `[Iteration ${this.currentIteration}] Successful scrape`,
-          this.currentIteration,
-        );
+        const commitResult = await commitChanges(`[Iteration ${this.currentIteration}] Successful scrape`, this.currentIteration);
         // Don't log success if no changes were committed (already handled in git-operations.ts)
         if (commitResult) {
-          console.log(
-            `Git operation completed for iteration ${this.currentIteration}`,
-          );
+          console.log(`Git operation completed for iteration ${this.currentIteration}`);
         }
       } catch (error) {
         console.warn(`Warning: Could not commit changes: ${error}`);
@@ -111,7 +111,6 @@ export class GeneticAlgorithmManager {
       gitCommit,
       timestamp: Date.now(),
       success,
-      // score
     };
 
     console.log({ metadata });
@@ -125,17 +124,11 @@ export class GeneticAlgorithmManager {
 
     // Save to file
     const filename = `flight-iteration-${this.currentIteration}-${metadata.timestamp}.json`;
-    fs.writeFileSync(
-      path.join(this.logsPath, filename),
-      JSON.stringify(result, null, 2),
-      "utf-8",
-    );
+    fs.writeFileSync(path.join(this.logsPath, filename), JSON.stringify(result, null, 2), "utf-8");
 
     console.log(`Saved flight data for iteration ${this.currentIteration}`);
-    if (isDev && gitCommit !== "error") {
+    if (gitCommit !== "error") {
       console.log(`Results saved with git commit: ${gitCommit}`);
-    } else {
-      console.log(`Results saved (no new commit in non-dev mode)`);
     }
 
     // Increment iteration for next run
@@ -148,7 +141,7 @@ export class GeneticAlgorithmManager {
    * Get the current iteration number
    */
   public getIteration(): number {
-    return this.currentIteration;
+    return this.enabled ? this.currentIteration : 0;
   }
 }
 

@@ -8,7 +8,7 @@ const DATE_SELECTORS = [
 ];
 
 export async function openCalendar(page: Page): Promise<void> {
-  let dateInput = await findElementBySelectors(page, DATE_SELECTORS);
+  const dateInput = await findElementBySelectors(page, DATE_SELECTORS);
 
   if (!dateInput) {
     throw new Error("Could not find date input field");
