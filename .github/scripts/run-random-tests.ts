@@ -18,6 +18,18 @@ import { launchBrowser } from "../../src/utils/launch";
 import { parseArgs } from "../../src/utils/parse-args";
 import { captureAndSaveScreenshot } from "../../src/utils/take-screenshot";
 
+interface TestMetadata {
+  iteration: number;
+  gitCommit: string;
+  timestamp: number;
+  success: boolean;
+}
+
+// Add metadata to global scope
+declare global {
+  var testMetadata: TestMetadata | undefined;
+}
+
 // Default test count
 const DEFAULT_TEST_COUNT = 3;
 
@@ -225,8 +237,14 @@ async function main() {
     console.log(`Passed: ${passed}`);
     console.log(`Failed: ${failed}`);
 
-    // Exit with error code if any tests failed
-    if (failed > 0) {
+    // Process metadata if available
+    if (global.testMetadata) {
+      console.log("\nMetadata Status:", global.testMetadata.success ? "✅ Success" : "❌ Failed");
+    }
+
+    // Exit with error code if any tests failed or metadata indicates failure
+    if (failed > 0 || global.testMetadata?.success === false) {
+      console.error("Test run failed - Exiting with error code 1");
       process.exit(1);
     }
   } catch (error: unknown) {
