@@ -38,7 +38,13 @@ export async function navigateToFlights(
 
   await clickSearchButton(page);
 
-  await applyAllianceFilters(page);
+  // Only apply alliance filters when not including budget airlines
+  // Alliance filters help exclude budget carriers, so we skip them when includeBudget is true
+  if (!parameters.includeBudget) {
+    await applyAllianceFilters(page);
+  } else {
+    console.info("Skipping alliance filters to include budget airlines");
+  }
 
   // Capture DOM structure for analysis before scraping
   console.log("Capturing DOM structure before scraping...");

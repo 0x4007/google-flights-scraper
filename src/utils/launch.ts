@@ -1,9 +1,10 @@
+import type { LaunchOptions } from "puppeteer";
 import puppeteer, { Browser } from "puppeteer";
 
-export async function launchBrowser(): Promise<Browser> {
+export async function launchBrowser(options?: LaunchOptions): Promise<Browser> {
   console.log("Launching browser...");
 
-  return await puppeteer.launch({
+  const defaultOptions: LaunchOptions = {
     headless: true,
     args: [
       "--no-sandbox",
@@ -12,5 +13,14 @@ export async function launchBrowser(): Promise<Browser> {
       "--disable-accelerated-2d-canvas",
       "--disable-gpu",
     ],
-  });
+  };
+
+  // Merge provided options with defaults
+  const launchOptions = {
+    ...defaultOptions,
+    ...options,
+    args: [...(defaultOptions.args || []), ...(options?.args || [])],
+  };
+
+  return await puppeteer.launch(launchOptions);
 }
